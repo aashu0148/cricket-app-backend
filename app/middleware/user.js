@@ -1,5 +1,6 @@
-import { createError } from "../../utils/util.js";
-import UserSchema from "../user/userSchema.js";
+import { createError } from "#utils/util.js";
+import UserSchema from "#app/users/userSchema.js";
+import { userRoleEnum } from "#utils/enums.js";
 
 const authenticateUserMiddleware = async (req, res, next) => {
   const token = req.headers.authorization;
@@ -31,7 +32,7 @@ const authenticateAdminMiddleware = async (req, res, next) => {
 
   if (!user) return createError(res, "Invalid Token", 422);
 
-  if (user.role !== "admin")
+  if (user.role !== userRoleEnum.ADMIN)
     return createError(res, "You need to be admin to access this route", 401);
 
   req.user = { ...user, _id: user._id.toString() };

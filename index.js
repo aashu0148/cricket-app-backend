@@ -6,6 +6,7 @@ import http from "http";
 
 // import SocketEvents from "./app/socket/events.js";
 import serverRouter from "./app/server.js";
+import configs from "#utils/configs.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -17,15 +18,15 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 app.use(serverRouter);
 
-server.listen(5000, () => {
-  console.log("Backend is up at port 5000 🚀");
+server.listen(configs.PORT || 5000, () => {
+  console.log("🚀 Backend is up at port 5000 ");
   // SocketEvents(io);
 
   mongoose.set("strictQuery", true);
   mongoose
     .connect(configs.MONGO_URI)
     .then(() => {
-      console.log("Established a connection with the database 🔐");
+      console.log("🔐 Established a connection with the database ");
     })
     .catch((err) => console.log("⚠️❗Error connecting to database", err));
 });

@@ -1,0 +1,17 @@
+import express from "express";
+import { getMatchesForTournament, getMatchDetails } from "./matchServices.js";
+import { authenticateUserMiddleware } from "#app/middleware/user.js";
+
+const rootRouter = express.Router();
+const router = express.Router();
+
+router.get(
+  "/tournament/:tournamentId",
+  authenticateUserMiddleware,
+  getMatchesForTournament
+);
+router.get("/:matchId", authenticateUserMiddleware, getMatchDetails);
+
+rootRouter.use("/match", router);
+
+export default rootRouter;

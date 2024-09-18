@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+import { userRoleEnum } from "#utils/enums.js";
+
 const schema = new mongoose.Schema(
   {
     name: {
@@ -17,7 +19,7 @@ const schema = new mongoose.Schema(
     token: String,
     role: {
       type: String,
-      default: "user",
+      default: userRoleEnum.USER,
     },
     profileImage: String,
   },
