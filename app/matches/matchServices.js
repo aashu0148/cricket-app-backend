@@ -1,74 +1,40 @@
 import MatchSchema from "./matchSchema.js";
 import { createError, createResponse } from "#utils/util.js";
 
-// Insert match into the database (can be used independently)
-const insertMatch = async (tournamentId, matchData) => {
-  const { status, statusText, slug, teams, innings } = matchData;
-
+/**
+ *
+ * @param {string} tournamentId
+ * @param {object} matchData
+ * @returns {{success:boolean,error:string,data:object}}
+ */
+const insertMatchIntoDB = async (tournamentId, matchData) => {
   try {
     // Check if a match with the same slug already exists in the tournament
     const existingMatch = await MatchSchema.findOne({
       tournament: tournamentId,
-      slug,
+      matchId: matchData.matchId,
     });
     if (existingMatch) {
       return {
-        success: false,
-        error: "Match with this slug already exists in the tournament",
+        success: true,
+        data: existingMatch,
       };
     }
-
-    // TODO: find a way to do this
-    // Prepare innings data by mapping player references
-    const processedInnings = innings.map((inning) => {
-      return {
-        ...inning,
-        inningBatsmen: inning.inningBatsmen.map((batsman) => ({
-          player: batsman.player, // Assume player is already a reference ID to player collection
-          runs: batsman.runs ?? null,
-          balls: batsman.balls ?? null,
-          minutes: batsman.minutes ?? null,
-          sixes: batsman.sixes ?? null,
-          fours: batsman.fours ?? null,
-          strikerate: batsman.strikerate ?? null,
-          isOut: batsman.isOut ?? null,
-          battedType: batsman.battedType ?? null,
-        })),
-        inningBowlers: inning.inningBowlers.map((bowler) => ({
-          player: bowler.player, // Assume player is already a reference ID to player collection
-          bowledType: bowler.bowledType ?? null,
-          overs: bowler.overs ?? null,
-          balls: bowler.balls ?? null,
-          maidens: bowler.maidens ?? null,
-          conceded: bowler.conceded ?? null,
-          wickets: bowler.wickets ?? null,
-          economy: bowler.economy ?? null,
-          dots: bowler.dots ?? null,
-          fours: bowler.fours ?? null,
-          sixes: bowler.sixes ?? null,
-          noballs: bowler.noballs ?? null,
-          wides: bowler.wides ?? null,
-          runPerBall: bowler.runPerBall ?? null,
-        })),
-      };
-    });
 
     // Create a new match document with the provided teams and innings data
     const newMatch = new MatchSchema({
       tournament: tournamentId,
-      slug,
-      teams,
-      status,
-      statusText,
-      innings: processedInnings,
+      ...matchData,
     });
 
-    await newMatch.save();
-    return { success: true, data: newMatch };
+    const matchRes = await newMatch.save();
+    return { success: true, data: matchRes };
   } catch (error) {
-    return { success: false, error: error.message };
+    console.log(`Error inserting match into database:`, error?.message);
+    return { success: false, error: error.message || "Error inserting match" };
   }
 };
+
 const getMatchesForTournament = async (req, res) => {
   const { tournamentId } = req.params;
 
@@ -101,4 +67,4 @@ const getMatchDetails = async (req, res) => {
   }
 };
 
-export { insertMatch, getMatchesForTournament, getMatchDetails };
+export { insertMatchIntoDB, getMatchesForTournament, getMatchDetails };

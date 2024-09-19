@@ -209,7 +209,10 @@ async function scrapeMatchDataFromUrl(url) {
 
     const matchStatus = data.match.status;
     const isMatchCompleted = matchStatus === "RESULT";
-    if (!isMatchCompleted)
+    const isMatchAbandoned = matchStatus === "ABANDONED";
+    const isNoResultForMatch = matchStatus === "NO RESULT";
+
+    if (!isMatchCompleted && !isMatchAbandoned && !isNoResultForMatch)
       return { success: false, error: "Math results are not yet there" };
 
     const match = data.match;
@@ -239,6 +242,16 @@ async function scrapeMatchDataFromUrl(url) {
       };
     });
 
+    if (isMatchAbandoned || isNoResultForMatch)
+      return {
+        success: true,
+        data: {
+          ...matchDetails,
+          teams: teamsDetails,
+          innings: [],
+        },
+      };
+    // return innings;
     const inningsDetails = [];
     for (const item of innings) {
       const {
@@ -265,12 +278,15 @@ async function scrapeMatchDataFromUrl(url) {
         noballs,
         inningBatsmen: [],
         inningBowlers: [],
+        fieldings: [],
       };
 
-      for (const batsman of item.inningBatsmen) {
+      for (let i = 0; i < item.inningBatsmen.length; ++i) {
+        const batsman = item.inningBatsmen[i];
+
         const dbPlayer = await PlayerSchema.findOne({
           playerId: batsman.player?.id,
-        });
+        }).select("_id");
         if (!dbPlayer) continue;
 
         const {
@@ -286,6 +302,7 @@ async function scrapeMatchDataFromUrl(url) {
 
         const obj = {
           player: dbPlayer._id,
+          position: i + 1,
           runs,
           balls,
           minutes,
@@ -302,7 +319,7 @@ async function scrapeMatchDataFromUrl(url) {
       for (const bowler of item.inningBowlers) {
         const dbPlayer = await PlayerSchema.findOne({
           playerId: bowler.player?.id,
-        });
+        }).select("_id");
         if (!dbPlayer) continue;
 
         const {
@@ -317,7 +334,7 @@ async function scrapeMatchDataFromUrl(url) {
           sixes,
           noballs,
           wides,
-          runPerBall,
+          runsPerBall,
           battedType,
         } = bowler;
 
@@ -334,11 +351,39 @@ async function scrapeMatchDataFromUrl(url) {
           sixes,
           noballs,
           wides,
-          runPerBall,
+          runsPerBall,
           battedType,
         };
 
         details.inningBowlers.push(obj);
+      }
+
+      for (const wicket of item.inningWickets) {
+        if (
+          !wicket.dismissalFielders?.length ||
+          !wicket.dismissalFielders[0].player?.id
+        )
+          continue; // fielding not involved
+
+        const fielder = await PlayerSchema.findOne({
+          playerId: wicket.dismissalFielders[0].player?.id,
+        }).select("_id");
+        if (!fielder) continue;
+        const batsman = await PlayerSchema.findOne({
+          objectId: wicket.dismissalBatsman.objectId,
+        }).select("_id");
+        const bowler = await PlayerSchema.findOne({
+          objectId: wicket.dismissalBowler.objectId,
+        }).select("_id");
+
+        const obj = {
+          fielder: fielder._id,
+          batsman: batsman._id,
+          bowler: bowler._id,
+          dismissalType: wicket.dismissalText.short,
+        };
+
+        details.fieldings.push(obj);
       }
 
       inningsDetails.push(details);

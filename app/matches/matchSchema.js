@@ -31,6 +31,7 @@ const matchSchema = new mongoose.Schema(
               ref: "Player",
               required: true,
             },
+            position: Number,
             runs: { type: Number, default: null },
             balls: { type: Number, default: null },
             minutes: { type: Number, default: null },
@@ -64,7 +65,25 @@ const matchSchema = new mongoose.Schema(
             sixes: { type: Number, default: null },
             noballs: { type: Number, default: null },
             wides: { type: Number, default: null },
-            runPerBall: { type: Number, default: null },
+            runsPerBall: { type: Number, default: null },
+          },
+        ],
+        fieldings: [
+          {
+            dismissalType: String,
+            fielder: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "Player",
+              required: true,
+            },
+            batsman: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "Player",
+            },
+            bowler: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "Player",
+            },
           },
         ],
       },

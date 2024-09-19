@@ -1,11 +1,69 @@
 import TournamentSchema from "./tournamentSchema.js";
-import { createError, createResponse } from "../../utils/util.js";
+import { createError, createResponse } from "#utils/util.js";
 import {
   getTournamentDataFromUrl,
+  scrapeMatchDataFromUrl,
   scrapeMatchesFromTournamentUrl,
   scrapePlayerIdsFromTournamentUrl,
   scrapeSquadsFromTournamentUrl,
 } from "#scrapper/scrapper.js";
+import { getMatchResultPageUrl } from "#scrapper/scraperUtil.js";
+import { insertMatchIntoDB } from "#app/matches/matchServices.js";
+
+const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
+  try {
+    const tournament = await TournamentSchema.findById(tournamentId).populate(
+      "matches"
+    );
+
+    const matches = tournament.matches;
+    const allMatches = tournament.allMatches;
+
+    const needToFetchResultFor = [];
+    allMatches.forEach((m) => {
+      const matchAlreadyPresent = matches.some(
+        (item) => item.objectId === m.objectId
+      );
+      const matchIsInFuture = new Date(m.startDate) > new Date();
+      if (matchAlreadyPresent || matchIsInFuture) return;
+
+      needToFetchResultFor.push({ objectId: m.objectId, slug: m.slug });
+    });
+
+    for (const obj of needToFetchResultFor) {
+      const matchPageUrl = getMatchResultPageUrl({
+        tournamentSlug: tournament.slug,
+        tournamentObjectId: tournament.objectId,
+        matchSlug: obj.slug,
+        matchObjectId: obj.objectId,
+      });
+      const matchData = await scrapeMatchDataFromUrl(matchPageUrl);
+      if (!matchData.success) {
+        console.error(
+          `❗ Error getting match data for: ${matchPageUrl} `,
+          matchData.error
+        );
+        continue;
+      }
+
+      const res = await insertMatchIntoDB(tournament._id, matchData.data);
+      if (res.success) {
+        const matchId = res.data?._id;
+        console.log(`✅ New match data inserted[${matchId}] for: ${obj.slug}`);
+
+        await TournamentSchema.updateOne(
+          { _id: tournament._id },
+          { $push: { matches: matchId } }
+        );
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error(`Error inserting matches: ${err.message}`, err);
+    return false;
+  }
+};
 
 // Create a new tournament
 const createTournament = async (req, res) => {
@@ -50,7 +108,10 @@ const createTournament = async (req, res) => {
 
     tournament
       .save()
-      .then((t) => createResponse(res, t, 201))
+      .then((t) => {
+        insertMatchesResultsToTournamentIfNeeded(t._id);
+        createResponse(res, t, 201);
+      })
       .catch((err) => createError(res, err?.message, 500, err));
   } catch (err) {
     createError(res, err.message || "Error creating tournament", 500, err);
@@ -125,4 +186,5 @@ export {
   getTournamentById,
   updateTournament,
   deleteTournament,
+  insertMatchesResultsToTournamentIfNeeded,
 };

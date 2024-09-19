@@ -58,7 +58,20 @@ const getSquadsUrlFromTournamentUrl = (tUrl = "") => {
   };
 };
 
+const getMatchResultPageUrl = ({
+  tournamentSlug = "",
+  tournamentObjectId = "",
+  matchSlug = "",
+  matchObjectId = "",
+}) => {
+  if (!tournamentObjectId || !tournamentSlug || !matchObjectId || !matchSlug)
+    return null;
+
+  return `${espnOrigin}/series/${tournamentSlug}-${tournamentObjectId}/${matchSlug}-${matchObjectId}/full-scorecard`;
+};
+
 export {
+  getMatchResultPageUrl,
   getTournamentUrlFromUrl,
   getMatchesUrlFromTournamentUrl,
   getSquadsUrlFromTournamentUrl,
