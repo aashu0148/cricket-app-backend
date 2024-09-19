@@ -32,7 +32,7 @@ const getNextJsDataInScriptTagFromUrl = async (url) => {
  *
  * @param {string} tUrl
  *
- * @returns {{success:boolean,data:object}}
+ * @returns {{success:boolean,error:string,data:object}}
  */
 async function getTournamentDataFromUrl(url) {
   const urlRes = getTournamentUrlFromUrl(url);
@@ -41,7 +41,8 @@ async function getTournamentDataFromUrl(url) {
   try {
     const { series } = await getNextJsDataInScriptTagFromUrl(urlRes.url);
 
-    const { longName, name, startDate, endDate, slug, objectId } = series;
+    const { season, longName, name, startDate, endDate, slug, objectId } =
+      series;
 
     return {
       success: true,
@@ -49,6 +50,7 @@ async function getTournamentDataFromUrl(url) {
         name,
         longName,
         startDate,
+        season,
         endDate,
         slug,
         objectId,
@@ -56,7 +58,10 @@ async function getTournamentDataFromUrl(url) {
     };
   } catch (err) {
     console.error("Error scrapping tournament", err);
-    return { success: false };
+    return {
+      success: false,
+      error: err?.message || "Error finding tournament data",
+    };
   }
 }
 
@@ -64,7 +69,7 @@ async function getTournamentDataFromUrl(url) {
  *
  * @param {string} tUrl
  *
- * @returns {{success:boolean,matches:Array}}
+ * @returns {{success:boolean,error:string,matches:Array}}
  */
 async function scrapeMatchesFromTournamentUrl(tUrl) {
   const matchesUrlRes = getMatchesUrlFromTournamentUrl(tUrl);
@@ -106,10 +111,10 @@ async function scrapeMatchesFromTournamentUrl(tUrl) {
       };
     });
 
-    return parsedMatches;
+    return { success: true, matches: parsedMatches };
   } catch (err) {
     console.error("Error scrapping matches", err);
-    return { success: false, matches: [] };
+    return { success: false, error: err?.message || "Error getting matches" };
   }
 }
 
@@ -117,7 +122,7 @@ async function scrapeMatchesFromTournamentUrl(tUrl) {
  *
  * @param {string} tUrl
  *
- * @returns {{success:boolean,squads:Array}}
+ * @returns {{success:boolean,error:string,squads:Array}}
  */
 async function scrapeSquadsFromTournamentUrl(tUrl) {
   const squadUrlRes = getSquadsUrlFromTournamentUrl(tUrl);

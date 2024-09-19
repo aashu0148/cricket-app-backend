@@ -37,6 +37,7 @@ const schema = new mongoose.Schema(
       required: true,
     },
     longName: String,
+    season: String,
     startDate: {
       type: Date,
       required: true,

@@ -17,12 +17,12 @@ import { createResponse } from "#utils/util.js";
 const router = express.Router();
 
 router.get("/hi", (_req, res) => res.send("Hello there!"));
-router.get("/temp", async (req, res) => {
-  const data = await scrapeMatchDataFromUrl(req.query.url);
-  //   const data = await getTournamentDataFromUrl(req.query.url);
+// router.get("/temp", async (req, res) => {
+//   // const data = await scrapeMatchDataFromUrl(req.query.url);
+//   const data = await getTournamentDataFromUrl(req.query.url);
 
-  createResponse(res, data);
-});
+//   createResponse(res, data);
+// });
 
 router.use(userRoutes);
 router.use(playerRoutes);
