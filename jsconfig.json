@@ -3,8 +3,9 @@
     "baseUrl": ".",
     "paths": {
       "#app/*": ["app/*"],
-      "#utils/*": ["utils/*"]
+      "#utils/*": ["utils/*"],
+      "#scrapper/*": ["scrapper/*"]
     }
   },
-  "include": ["./app/**/*", "./utils/**/*"]
+  "include": ["./app/**/*", "./utils/**/*", "./scrapper/**/*"]
 }

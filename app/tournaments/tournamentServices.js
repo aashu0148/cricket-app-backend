@@ -3,14 +3,13 @@ import { createError, createResponse } from "../../utils/util.js";
 
 // Create a new tournament
 const createTournament = async (req, res) => {
-  const { name, startDate, endDate, status } = req.body;
+  const { name, startDate, endDate } = req.body;
 
   try {
     const tournament = new TournamentSchema({
       name,
       startDate,
       endDate,
-      status,
     });
 
     await tournament.save();
@@ -35,7 +34,9 @@ const getTournamentById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const tournament = await TournamentSchema.findById(id);
+    const tournament = (await TournamentSchema.findById(id)).populated(
+      "players"
+    );
     if (!tournament) {
       return createError(res, "Tournament not found", 404);
     }
@@ -48,7 +49,7 @@ const getTournamentById = async (req, res) => {
 // Update a tournament
 const updateTournament = async (req, res) => {
   const { id } = req.params;
-  const { name, startDate, endDate, status } = req.body;
+  const { name, startDate, endDate } = req.body;
 
   try {
     const tournament = await TournamentSchema.findById(id);
@@ -59,7 +60,6 @@ const updateTournament = async (req, res) => {
     if (name) tournament.name = name;
     if (startDate) tournament.startDate = startDate;
     if (endDate) tournament.endDate = endDate;
-    if (status) tournament.status = status;
 
     await tournament.save();
     createResponse(res, tournament, 200);

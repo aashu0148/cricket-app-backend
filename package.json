@@ -25,7 +25,8 @@
   },
   "imports": {
     "#app/*": "./app/*",
-    "#utils/*": "./utils/*"
+    "#utils/*": "./utils/*",
+    "#scrapper/*": "./scrapper/*"
   },
   "type": "module"
 }

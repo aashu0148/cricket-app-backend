@@ -1,6 +1,34 @@
 import mongoose from "mongoose";
 
-import { tournamentStatusEnum } from "#utils/enums";
+const matchSchema = new mongoose.Schema({
+  slug: String,
+  startDate: Date,
+  endDate: Date,
+  startTime: Date,
+  matchId: String,
+  objectId: String,
+  isCancelled: Boolean,
+  format: String,
+  statusText: String,
+  teams: [
+    {
+      slug: String,
+      name: String,
+      country: String,
+      url: String,
+    },
+  ],
+});
+
+const squadSchema = new mongoose.Schema({
+  squadId: String,
+  objectId: String,
+  slug: String,
+  teamSlug: String,
+  teamName: String,
+  teamImage: String,
+  title: String,
+});
 
 const schema = new mongoose.Schema(
   {
@@ -8,6 +36,7 @@ const schema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    longName: String,
     startDate: {
       type: Date,
       required: true,
@@ -16,18 +45,22 @@ const schema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    status: {
-      type: String,
-      enum: Object.values(tournamentStatusEnum),
-      default: tournamentStatusEnum.UPCOMING,
-    },
     matches: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Match",
       },
     ],
+    allMatches: [matchSchema],
+    allSquads: [squadSchema],
+    players: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Player",
+      },
+    ],
     slug: String,
+    objectId: String,
   },
   {
     timestamps: true,
