@@ -15,7 +15,7 @@ const rootRouter = express.Router();
 const router = express.Router();
 
 // Create a new tournament (Admin only)
-router.post("/", createTournament);
+router.post("/", authenticateAdminMiddleware, createTournament);
 
 // Get all tournaments
 router.get("/", authenticateUserMiddleware, getAllTournaments);
