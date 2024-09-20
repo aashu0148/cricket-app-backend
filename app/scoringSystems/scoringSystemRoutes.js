@@ -4,14 +4,15 @@ import {
   getScoringSystemById,
   updateScoringSystem,
   deleteScoringSystem,
+  getAllScoringSystems,
 } from "./scoringSystemServices.js";
-import {
-  authenticateAdminMiddleware,
-  authenticateUserMiddleware,
-} from "#app/middleware/user.js";
+import { authenticateAdminMiddleware } from "#app/middleware/user.js";
 
 const rootRouter = express.Router();
 const router = express.Router();
+
+// Get All scoring systems (Admin Only)
+router.get("/", authenticateAdminMiddleware, getAllScoringSystems);
 
 // Create a new scoring system (Admin only)
 router.post("/", authenticateAdminMiddleware, createScoringSystem);

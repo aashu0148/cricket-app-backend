@@ -6,13 +6,14 @@ import tournamentRoutes from "#app/tournaments/tournamentRoutes.js";
 import matchRoutes from "#app/matches/matchRoutes.js";
 import scoringSystemRoutes from "#app/scoringSystems/scoringSystemRoutes.js";
 import leagueRoutes from "#app/leagues/leagueRoutes.js";
+import { scrapeMatchDataFromUrl } from "#scrapper/scrapper.js";
+import { createResponse } from "#utils/util.js";
 
 const router = express.Router();
 
 router.get("/hi", (_req, res) => res.send("Hello there!"));
 // router.get("/temp", async (req, res) => {
 //   const data = await scrapeMatchDataFromUrl(req.query.url);
-//   // const data = await getTournamentDataFromUrl(req.query.url);
 
 //   createResponse(res, data);
 // });

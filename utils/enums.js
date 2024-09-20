@@ -17,6 +17,12 @@ const playerDismissalTypeEnum = {
   stumped: "stumped",
   lbw: "lbw",
 };
+// its important to not change this enum, its based on espn's data
+const matchStatusEnum = {
+  RESULT: "RESULT",
+  ABANDONED: "ABANDONED",
+  NO_RESULT: "NO RESULT",
+};
 
 const leagueTypeEnum = {
   PUBLIC: "PUBLIC",
@@ -28,4 +34,5 @@ export {
   playerDismissalTypeEnum,
   tournamentStatusEnum,
   userRoleEnum,
+  matchStatusEnum,
 };

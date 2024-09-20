@@ -20,6 +20,17 @@ const createScoringSystem = async (req, res) => {
   }
 };
 
+// Get all scoring systems
+const getAllScoringSystems = async (req, res) => {
+  try {
+    const result = await ScoringSystemSchema.find();
+
+    createResponse(res, result, 200);
+  } catch (error) {
+    createError(res, error?.message || "Server error", 500, error);
+  }
+};
+
 // Get scoring system by ID
 const getScoringSystemById = async (req, res) => {
   const { id } = req.params;
@@ -81,7 +92,7 @@ const deleteScoringSystem = async (req, res) => {
   }
 };
 
-function getPlayerMatchStatsFromMatchData(matchData) {
+function getPlayersMatchStatsFromMatchData(matchData) {
   const playerStats = {};
 
   // Helper function to initialize player stats
@@ -93,6 +104,8 @@ function getPlayerMatchStatsFromMatchData(matchData) {
           fullName: player.fullName,
           _id: player._id,
         },
+        team: {},
+        opponentTeam: {},
         batting: {},
         bowling: {},
         fielding: {
@@ -105,7 +118,10 @@ function getPlayerMatchStatsFromMatchData(matchData) {
   };
 
   // Parse batting stats (only one per player)
-  matchData.innings.forEach((inning) => {
+  for (let i = 0; i < matchData.innings.length; ++i) {
+    const inning = matchData.innings[i];
+    const otherInning = matchData.innings[i === 0 ? 1 : 0];
+
     inning.inningBatsmen.forEach((batsman) => {
       const {
         player,
@@ -122,6 +138,18 @@ function getPlayerMatchStatsFromMatchData(matchData) {
       const playerId = player._id;
       initializeStats(playerId, player);
 
+      // update team for this player
+      playerStats[playerId].team = {
+        runs: inning.runs,
+        balls: inning.balls,
+      };
+
+      // update opponent for this player
+      playerStats[playerId].opponentTeam = {
+        runs: otherInning.runs,
+        balls: otherInning.balls,
+      };
+
       // Only one batting entry per player, so we assign directly
       playerStats[playerId].batting = {
         position,
@@ -135,7 +163,7 @@ function getPlayerMatchStatsFromMatchData(matchData) {
         battedType,
       };
     });
-  });
+  }
 
   // Parse bowling stats (only one per player)
   matchData.innings.forEach((inning) => {
@@ -147,6 +175,7 @@ function getPlayerMatchStatsFromMatchData(matchData) {
         maidens,
         conceded,
         wickets,
+        detailedWickets,
         economy,
         dots,
         fours,
@@ -172,6 +201,11 @@ function getPlayerMatchStatsFromMatchData(matchData) {
         noballs,
         wides,
         runsPerBall,
+        wicketPlayerDetails: detailedWickets.map((item) => ({
+          runs: item.runs,
+          balls: item.balls,
+          position: item.position,
+        })),
       };
     });
   });
@@ -200,40 +234,48 @@ function getPlayerMatchStatsFromMatchData(matchData) {
 }
 
 // Calculate total points of a player based on the scoring system
-function calculatePlayerFantasyPoints(scoringSystem, playerData) {
+function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
   let totalPoints = 0;
 
   // Calculate average scoring rate
-  const averageScoringRate = scoringSystem.matchRuns / scoringSystem.matchBalls;
-  const avgRate = parseFloat(averageScoringRate.toFixed(2));
+
+  const averageScoringRateOfMatch = parseFloat(
+    (
+      (playerMatchData.team.runs + playerMatchData.opponentTeam.runs) /
+      (playerMatchData.team.balls + playerMatchData.opponentTeam.balls)
+    ).toFixed(2)
+  );
 
   // --- Batting Points Calculation ---
-  if (playerData.batting && playerData.batting.battedType === "yes") {
+  if (playerMatchData.batting && playerMatchData.batting.battedType === "yes") {
     // 1. Runs scored points
-    totalPoints += playerData.batting.runs * scoringSystem.batting.runPoints;
+    totalPoints +=
+      playerMatchData.batting.runs * scoringSystem.batting.runPoints;
 
     // 2. Boundary points
     const boundaryRule = scoringSystem.batting.boundaryPoints.find(
-      (rule) => avgRate >= rule.minRate && avgRate <= rule.maxRate
+      (rule) =>
+        averageScoringRateOfMatch >= rule.minRate &&
+        averageScoringRateOfMatch <= rule.maxRate
     );
     if (boundaryRule) {
-      totalPoints += playerData.batting.fours * boundaryRule.four;
-      totalPoints += playerData.batting.sixes * boundaryRule.six;
+      totalPoints += playerMatchData.batting.fours * boundaryRule.four;
+      totalPoints += playerMatchData.batting.sixes * boundaryRule.six;
     }
 
     // 3. Runs scored milestone bonus
     const milestoneRule =
       scoringSystem.batting.runMilestoneBonus.milestones.find(
-        (m) => playerData.batting.runs <= m.runsUpto
+        (m) => playerMatchData.batting.runs <= m.runsUpto
       );
     if (milestoneRule) {
       if (
         !scoringSystem.batting.runMilestoneBonus.negativeRunsExemptPositions.includes(
-          playerData.batting.position
+          playerMatchData.batting.position
         ) &&
-        playerData.batting.runs >= 1 &&
-        playerData.batting.balls >= 10 &&
-        playerData.batting.isOut
+        playerMatchData.batting.runs >= 1 &&
+        playerMatchData.batting.balls >= 10 &&
+        playerMatchData.batting.isOut
       ) {
         totalPoints += milestoneRule.points;
       }
@@ -241,56 +283,61 @@ function calculatePlayerFantasyPoints(scoringSystem, playerData) {
 
     // 4. Batting Strike Rate Bonus
     if (
-      playerData.batting.balls >=
+      playerMatchData.batting.balls >=
       scoringSystem.batting.strikeRateBonus.minBallsRequired
     ) {
       const multiplierRule =
         scoringSystem.batting.strikeRateBonus.multiplierRanges.find(
           (rule) =>
-            playerData.batting.balls >= rule.minBalls &&
-            playerData.batting.balls <= rule.maxBalls &&
-            rule.battingPositions.includes(playerData.batting.position)
+            playerMatchData.batting.balls >= rule.minBalls &&
+            playerMatchData.batting.balls <= rule.maxBalls &&
+            rule.battingPositions.includes(playerMatchData.batting.position)
         );
 
       if (multiplierRule) {
         const strikeRateBonus =
           multiplierRule.multiplier *
-          (playerData.batting.runs - avgRate * playerData.batting.balls);
+          (playerMatchData.batting.runs -
+            averageScoringRateOfMatch * playerMatchData.batting.balls);
         totalPoints += Math.round(strikeRateBonus);
       }
     }
   }
 
   // --- Bowling Points Calculation ---
-  if (playerData.bowling) {
+  if (playerMatchData.bowling && playerMatchData.bowling.overs) {
     // 1. Wickets points
-    playerData.bowling.wickets.forEach((wicket) => {
+    playerMatchData.bowling.wicketPlayerDetails.forEach((p) => {
       const wicketRule = scoringSystem.bowling.wicketPoints.find(
         (rule) =>
-          wicket.battingPosition >= rule.minBattingPosition &&
-          wicket.battingPosition <= rule.maxBattingPosition
+          p.position >= rule.minBattingPosition &&
+          p.position <= rule.maxBattingPosition
       );
+
       if (wicketRule) {
-        totalPoints += wicketRule.points;
-        if (wicket.batterRuns >= wicketRule.runsCapForIncrementingPoints) {
+        if (p.runs >= wicketRule.runsCapForIncrementingPoints) {
           totalPoints += wicketRule.incrementedPoints;
+        } else {
+          totalPoints += wicketRule.points;
         }
       }
     });
 
     // 2. Dot ball points
     const dotBallRule = scoringSystem.bowling.dotBallPoints.find(
-      (rule) => avgRate >= rule.minRate && avgRate <= rule.maxRate
+      (rule) =>
+        averageScoringRateOfMatch >= rule.minRate &&
+        averageScoringRateOfMatch <= rule.maxRate
     );
     if (dotBallRule) {
-      totalPoints += playerData.bowling.dots * dotBallRule.points;
+      totalPoints += playerMatchData.bowling.dots * dotBallRule.points;
     }
 
     // 3. Wickets milestone bonus
     const milestoneRule = scoringSystem.bowling.wicketMilestoneBonus.find(
       (rule) =>
-        playerData.bowling.wickets >= rule.minWickets &&
-        playerData.bowling.wickets <= rule.maxWickets
+        playerMatchData.bowling.wickets >= rule.minWickets &&
+        playerMatchData.bowling.wickets <= rule.maxWickets
     );
     if (milestoneRule) {
       totalPoints += milestoneRule.points;
@@ -298,35 +345,36 @@ function calculatePlayerFantasyPoints(scoringSystem, playerData) {
 
     // 4. Bowling Economy Rate Bonus
     if (
-      playerData.bowling.balls >=
+      playerMatchData.bowling.balls >=
       scoringSystem.bowling.economyRateBonus.minBowledBallsRequired
     ) {
       const economyBonusRule =
         scoringSystem.bowling.economyRateBonus.multiplierRanges.find(
           (rule) =>
-            playerData.bowling.balls >= rule.minBallsBowled &&
-            playerData.bowling.balls <= rule.maxBallsBowled
+            playerMatchData.bowling.balls >= rule.minBallsBowled &&
+            playerMatchData.bowling.balls <= rule.maxBallsBowled
         );
 
       if (economyBonusRule) {
         const economyBonus =
           economyBonusRule.multiplier *
-          (avgRate * playerData.bowling.balls - playerData.bowling.conceded);
+          (averageScoringRateOfMatch * playerMatchData.bowling.balls -
+            playerMatchData.bowling.conceded);
         totalPoints += Math.round(economyBonus);
       }
     }
   }
 
   // --- Fielding Points Calculation ---
-  if (playerData.fielding) {
+  if (playerMatchData.fielding) {
     totalPoints +=
-      playerData.fielding[playerDismissalTypeEnum.caught] *
+      playerMatchData.fielding[playerDismissalTypeEnum.caught] *
       scoringSystem.fielding.catchPoints;
     totalPoints +=
-      playerData.fielding[playerDismissalTypeEnum.stumped] *
+      playerMatchData.fielding[playerDismissalTypeEnum.stumped] *
       scoringSystem.fielding.stumpingPoints;
     totalPoints +=
-      playerData.fielding[playerDismissalTypeEnum.runOut] *
+      playerMatchData.fielding[playerDismissalTypeEnum.runOut] *
       scoringSystem.fielding.directHitRunOutPoints;
   }
 
@@ -335,10 +383,11 @@ function calculatePlayerFantasyPoints(scoringSystem, playerData) {
 }
 
 export {
+  getAllScoringSystems,
   createScoringSystem,
   getScoringSystemById,
   updateScoringSystem,
   deleteScoringSystem,
   calculatePlayerFantasyPoints,
-  getPlayerMatchStatsFromMatchData,
+  getPlayersMatchStatsFromMatchData,
 };

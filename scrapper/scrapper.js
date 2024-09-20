@@ -6,6 +6,7 @@ import {
   getTournamentUrlFromUrl,
 } from "./scraperUtil.js";
 import PlayerSchema from "#app/players/playerSchema.js";
+import { matchStatusEnum } from "#utils/enums.js";
 
 const getNextJsDataInScriptTagFromUrl = async (url) => {
   try {
@@ -208,9 +209,9 @@ async function scrapeMatchDataFromUrl(url) {
     const data = await getNextJsDataInScriptTagFromUrl(url);
 
     const matchStatus = data.match.status;
-    const isMatchCompleted = matchStatus === "RESULT";
-    const isMatchAbandoned = matchStatus === "ABANDONED";
-    const isNoResultForMatch = matchStatus === "NO RESULT";
+    const isMatchCompleted = matchStatus === matchStatusEnum.RESULT;
+    const isMatchAbandoned = matchStatus === matchStatusEnum.ABANDONED;
+    const isNoResultForMatch = matchStatus === matchStatusEnum.NO_RESULT;
 
     if (!isMatchCompleted && !isMatchAbandoned && !isNoResultForMatch)
       return { success: false, error: "Math results are not yet there" };
@@ -251,7 +252,7 @@ async function scrapeMatchDataFromUrl(url) {
           innings: [],
         },
       };
-    // return innings;
+
     const inningsDetails = [];
     for (const item of innings) {
       const {
@@ -302,6 +303,7 @@ async function scrapeMatchDataFromUrl(url) {
 
         const obj = {
           player: dbPlayer._id,
+          objectId: batsman.player.objectId,
           position: i + 1,
           runs,
           balls,
@@ -338,6 +340,21 @@ async function scrapeMatchDataFromUrl(url) {
           battedType,
         } = bowler;
 
+        // we will be getting player from above calculated inning batsmen because we want player's position as well
+        const detailedWickets = bowler.inningWickets.map((w) => {
+          const player =
+            details.inningBatsmen.find(
+              (b) => b.objectId === w.dismissalBatsman.objectId
+            ) || {};
+
+          return {
+            balls: player.balls,
+            runs: player.runs,
+            position: player.position,
+            player: player.player,
+          };
+        });
+
         const obj = {
           player: dbPlayer._id,
           overs,
@@ -345,6 +362,7 @@ async function scrapeMatchDataFromUrl(url) {
           maidens,
           conceded,
           wickets,
+          detailedWickets,
           economy,
           dots,
           fours,

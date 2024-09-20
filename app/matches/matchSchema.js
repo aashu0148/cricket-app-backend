@@ -59,6 +59,17 @@ const matchSchema = new mongoose.Schema(
             maidens: { type: Number, default: null },
             conceded: { type: Number, default: null },
             wickets: { type: Number, default: null },
+            detailedWickets: [
+              {
+                player: {
+                  type: mongoose.Schema.Types.ObjectId,
+                  ref: "Player",
+                },
+                runs: Number,
+                balls: Number,
+                position: Number,
+              },
+            ],
             economy: { type: Number, default: null },
             dots: { type: Number, default: null },
             fours: { type: Number, default: null },
@@ -101,6 +112,15 @@ const matchSchema = new mongoose.Schema(
     startTime: String,
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    playerPoints: [
+      {
+        player: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Player",
+        },
+        points: Number,
+      },
+    ],
   },
   {
     timestamps: true,

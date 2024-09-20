@@ -8,7 +8,10 @@ import {
   scrapeSquadsFromTournamentUrl,
 } from "#scrapper/scrapper.js";
 import { getMatchResultPageUrl } from "#scrapper/scraperUtil.js";
-import { insertMatchIntoDB } from "#app/matches/matchServices.js";
+import {
+  calculateAndStoreMatchPlayerPoints,
+  insertMatchIntoDB,
+} from "#app/matches/matchServices.js";
 
 const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
   try {
@@ -55,6 +58,8 @@ const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
           { _id: tournament._id },
           { $push: { matches: matchId } }
         );
+
+        await calculateAndStoreMatchPlayerPoints(matchId);
       }
     }
 
