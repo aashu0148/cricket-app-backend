@@ -39,9 +39,11 @@ const getMatchesForTournament = async (req, res) => {
   const { tournamentId } = req.params;
 
   try {
-    const matches = await MatchSchema.find({ tournament: tournamentId })
-      .populate("innings.inningBatsmen.player")
-      .populate("innings.inningBowlers.player");
+    const matches = await MatchSchema.find({ tournament: tournamentId }).select(
+      "-innings"
+    );
+    // .populate("innings.inningBatsmen.player","-stats")
+    // .populate("innings.inningBowlers.player","-stats");
 
     return createResponse(res, matches, 200);
   } catch (error) {
@@ -54,8 +56,11 @@ const getMatchDetails = async (req, res) => {
 
   try {
     const match = await MatchSchema.findById(matchId)
-      .populate("innings.inningBatsmen.player")
-      .populate("innings.inningBowlers.player");
+      .populate("innings.inningBatsmen.player", "-stats")
+      .populate("innings.inningBowlers.player", "-stats")
+      .populate("innings.fieldings.fielder", "-stats")
+      .populate("innings.fieldings.batsman", "-stats")
+      .populate("innings.fieldings.bowler", "-stats");
 
     if (!match) {
       return createError(res, "Match not found", 404);

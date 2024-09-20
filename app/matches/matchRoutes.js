@@ -10,8 +10,8 @@ router.get(
   authenticateUserMiddleware,
   getMatchesForTournament
 );
-router.get("/:matchId", authenticateUserMiddleware, getMatchDetails);
+router.get("/:matchId", getMatchDetails);
 
-rootRouter.use("/match", router);
+rootRouter.use("/matches", router);
 
 export default rootRouter;

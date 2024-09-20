@@ -81,6 +81,124 @@ const deleteScoringSystem = async (req, res) => {
   }
 };
 
+function getPlayerMatchStatsFromMatchData(matchData) {
+  const playerStats = {};
+
+  // Helper function to initialize player stats
+  const initializeStats = (playerId, player = {}) => {
+    if (!playerStats[playerId]) {
+      playerStats[playerId] = {
+        player: {
+          name: player.name,
+          fullName: player.fullName,
+          _id: player._id,
+        },
+        batting: {},
+        bowling: {},
+        fielding: {
+          [playerDismissalTypeEnum.caught]: 0,
+          [playerDismissalTypeEnum.stumped]: 0,
+          [playerDismissalTypeEnum.runOut]: 0,
+        },
+      };
+    }
+  };
+
+  // Parse batting stats (only one per player)
+  matchData.innings.forEach((inning) => {
+    inning.inningBatsmen.forEach((batsman) => {
+      const {
+        player,
+        position,
+        runs,
+        balls,
+        minutes,
+        sixes,
+        fours,
+        strikerate,
+        isOut,
+        battedType,
+      } = batsman;
+      const playerId = player._id;
+      initializeStats(playerId, player);
+
+      // Only one batting entry per player, so we assign directly
+      playerStats[playerId].batting = {
+        position,
+        runs,
+        balls,
+        minutes,
+        sixes,
+        fours,
+        strikerate,
+        isOut,
+        battedType,
+      };
+    });
+  });
+
+  // Parse bowling stats (only one per player)
+  matchData.innings.forEach((inning) => {
+    inning.inningBowlers.forEach((bowler) => {
+      const {
+        balls,
+        player,
+        overs,
+        maidens,
+        conceded,
+        wickets,
+        economy,
+        dots,
+        fours,
+        sixes,
+        noballs,
+        wides,
+        runsPerBall,
+      } = bowler;
+      const playerId = player._id;
+      initializeStats(playerId, player);
+
+      // Only one bowling entry per player, so we assign directly
+      playerStats[playerId].bowling = {
+        overs,
+        balls,
+        maidens,
+        conceded,
+        wickets,
+        economy,
+        dots,
+        fours,
+        sixes,
+        noballs,
+        wides,
+        runsPerBall,
+      };
+    });
+  });
+
+  // Parse fielding stats (sum multiple contributions)
+  matchData.innings.forEach((inning) => {
+    inning.fieldings.forEach((dismissal) => {
+      const { dismissalType, fielder } = dismissal;
+      const fielderId = fielder._id;
+
+      // Initialize stats for the fielder if not already initialized
+      initializeStats(fielderId, fielder);
+
+      // Update fielding stats based on the dismissal type
+      if (dismissalType === playerDismissalTypeEnum.caught) {
+        playerStats[fielderId].fielding[playerDismissalTypeEnum.caught] += 1;
+      } else if (dismissalType === playerDismissalTypeEnum.stumped) {
+        playerStats[fielderId].fielding[playerDismissalTypeEnum.stumped] += 1;
+      } else if (dismissalType === playerDismissalTypeEnum.runOut) {
+        playerStats[fielderId].fielding[playerDismissalTypeEnum.runOut] += 1;
+      }
+    });
+  });
+
+  return playerStats;
+}
+
 // Calculate total points of a player based on the scoring system
 function calculatePlayerFantasyPoints(scoringSystem, playerData) {
   let totalPoints = 0;
@@ -222,4 +340,5 @@ export {
   updateScoringSystem,
   deleteScoringSystem,
   calculatePlayerFantasyPoints,
+  getPlayerMatchStatsFromMatchData,
 };
