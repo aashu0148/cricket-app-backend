@@ -107,3 +107,54 @@ for (let i = 0; i < urls.length; ++i) {
   if (i % 5 === 0)
     localStorage.setItem("final-data", JSON.stringify(finalData));
 }
+
+// ------------ player data from team scraping function -------------------
+
+async function scrapeSquadUrl(teamUrl) {
+  try {
+    const res = await fetch(teamUrl);
+    const textResponse = await res.text();
+    const dom = new DOMParser().parseFromString(textResponse, "text/html");
+
+    const urls = Array.from(
+      dom.querySelectorAll(".ds-flex.ds-flex-row a[href^='/series/']")
+    )
+      .map((item) => item.getAttribute("href"))
+      .filter((e) => e)
+      .map((e) => "https://www.espncricinfo.com" + e)
+      .slice(0, 4);
+
+    return urls;
+  } catch (err) {
+    console.error("Error scraping squad urls", err);
+    return [];
+  }
+}
+
+async function scrapeCricketerUrlsFromSquadUrl(squadUrl) {
+  try {
+    const res = await fetch(squadUrl);
+    const textResponse = await res.text();
+    const dom = new DOMParser().parseFromString(textResponse, "text/html");
+
+    const urls = Array.from(dom.querySelectorAll("a[href^='/cricketers/']"))
+      .map((item) => item.getAttribute("href"))
+      .filter((e) => e)
+      .map((e) => "https://www.espncricinfo.com" + e);
+
+    return urls;
+  } catch (err) {
+    console.error("Error scraping cricketer urls", err);
+    return [];
+  }
+}
+
+const pUrls = [];
+for (const u of squadUrls) {
+  const res = await scrapeCricketerUrlsFromSquadUrl(u);
+
+  res.forEach((e) => {
+    if (pUrls.includes(e)) console.log("Already present");
+    else pUrls.push(e);
+  });
+}

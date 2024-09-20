@@ -12,6 +12,7 @@ import {
   calculateAndStoreMatchPlayerPoints,
   insertMatchIntoDB,
 } from "#app/matches/matchServices.js";
+import ScoringSystemSchema from "#app/scoringSystems/scoringSystemSchema.js";
 
 const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
   try {
@@ -79,6 +80,10 @@ const createTournament = async (req, res) => {
     return createError(res, "scoringSystemId required");
 
   try {
+    const scoringSystem = await ScoringSystemSchema.findById(scoringSystemId);
+    if (!scoringSystem)
+      return createError(res, "Scoring system not present", 422);
+
     const tournamentData = await getTournamentDataFromUrl(espnUrl);
     if (!tournamentData.success)
       return createError(
