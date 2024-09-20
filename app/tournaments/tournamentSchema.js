@@ -32,6 +32,11 @@ const squadSchema = new mongoose.Schema({
 
 const schema = new mongoose.Schema(
   {
+    scoringSystem: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ScoringSystem",
+      required: true,
+    },
     name: {
       type: String,
       required: true,

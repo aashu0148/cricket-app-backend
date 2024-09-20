@@ -67,9 +67,11 @@ const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
 
 // Create a new tournament
 const createTournament = async (req, res) => {
-  const { espnUrl } = req.body;
+  const { espnUrl, scoringSystemId } = req.body;
 
   if (!espnUrl) return createError(res, "espnUrl required");
+  else if (!scoringSystemId)
+    return createError(res, "scoringSystemId required");
 
   try {
     const tournamentData = await getTournamentDataFromUrl(espnUrl);
@@ -104,6 +106,7 @@ const createTournament = async (req, res) => {
       allMatches: allMatchesRes.matches,
       squads: squadsRes.squads,
       players: playersRes.playerIds,
+      scoringSystem: scoringSystemId,
     });
 
     tournament
@@ -149,7 +152,7 @@ const getTournamentById = async (req, res) => {
 // Update a tournament
 const updateTournament = async (req, res) => {
   const { id } = req.params;
-  const { name, startDate, endDate } = req.body;
+  const { name, startDate, endDate, scoringSystemId } = req.body;
 
   try {
     const tournament = await TournamentSchema.findById(id);
@@ -160,6 +163,7 @@ const updateTournament = async (req, res) => {
     if (name) tournament.name = name;
     if (startDate) tournament.startDate = startDate;
     if (endDate) tournament.endDate = endDate;
+    if (scoringSystemId) tournament.scoringSystem = scoringSystemId;
 
     await tournament.save();
     createResponse(res, tournament, 200);

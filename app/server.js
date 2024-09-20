@@ -5,6 +5,7 @@ import playerRoutes from "#app/players/playerRoutes.js";
 import tournamentRoutes from "#app/tournaments/tournamentRoutes.js";
 import matchRoutes from "#app/matches/matchRoutes.js";
 import scoringSystemRoutes from "#app/scoringSystems/scoringSystemRoutes.js";
+import leagueRoutes from "#app/leagues/leagueRoutes.js";
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.use(playerRoutes);
 router.use(tournamentRoutes);
 router.use(matchRoutes);
 router.use(scoringSystemRoutes);
+router.use(leagueRoutes);
 
 export default router;

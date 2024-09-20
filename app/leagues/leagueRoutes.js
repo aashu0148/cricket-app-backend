@@ -1,0 +1,39 @@
+import express from "express";
+import {
+  createLeague,
+  getAllLeaguesOfTournament,
+  getLeagueById,
+  updateLeague,
+  deleteLeague,
+  joinLeague,
+} from "./leagueServices.js";
+import { authenticateUserMiddleware } from "#app/middleware/user.js";
+
+const rootRouter = express.Router();
+const router = express.Router();
+
+// Create a new league (authenticated users only)
+router.post("/", authenticateUserMiddleware, createLeague);
+
+// Get all leagues (available to all authenticated users)
+router.get(
+  "/tournament/:id",
+  authenticateUserMiddleware,
+  getAllLeaguesOfTournament
+);
+
+// Get specific league by ID (available to all authenticated users)
+router.get("/:id", authenticateUserMiddleware, getLeagueById);
+
+// Update a league (only owner or admin can update)
+router.patch("/:id", authenticateUserMiddleware, updateLeague);
+
+// Delete a league (only owner or admin can delete)
+router.delete("/:id", authenticateUserMiddleware, deleteLeague);
+
+// Join a league (private leagues require a password)
+router.post("/:id/join", authenticateUserMiddleware, joinLeague);
+
+rootRouter.use("/leagues", router);
+
+export default rootRouter;

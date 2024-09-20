@@ -61,6 +61,17 @@ function decodeJwtToken(token) {
   }
 }
 
+const getUniqueId = (idLength = 15) => {
+  let timeDigitsToKeep = Math.floor(idLength / 2);
+
+  return (
+    Date.now()
+      .toString(16)
+      .slice(-1 * timeDigitsToKeep) +
+    parseInt(Math.random() * 9999999999).toString(16)
+  ).slice(0, idLength);
+};
+
 export {
   sleep,
   createError,
@@ -69,4 +80,5 @@ export {
   getRandomInteger,
   signJwtToken,
   decodeJwtToken,
+  getUniqueId,
 };

@@ -18,4 +18,14 @@ const playerDismissalTypeEnum = {
   lbw: "lbw",
 };
 
-export { playerDismissalTypeEnum, tournamentStatusEnum, userRoleEnum };
+const leagueTypeEnum = {
+  PUBLIC: "PUBLIC",
+  PRIVATE: "PRIVATE",
+};
+
+export {
+  leagueTypeEnum,
+  playerDismissalTypeEnum,
+  tournamentStatusEnum,
+  userRoleEnum,
+};
