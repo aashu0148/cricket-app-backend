@@ -1,5 +1,6 @@
 import PlayerSchema from "./playerSchema.js";
 import { createError, createResponse } from "#utils/util.js";
+import { scrapePlayerDataFromEspn } from "#scrapper/scrapper.js";
 
 // Bulk insert players into the database
 // const bulkInsertPlayers = async (req, res) => {
@@ -48,7 +49,7 @@ const getPlayerById = async (req, res) => {
 
     createResponse(res, player, 200);
   } catch (error) {
-    createError(res, "Server error", 500, error);
+    createError(res, error.message || "Server error", 500, error);
   }
 };
 
@@ -67,8 +68,41 @@ const searchPlayerByName = async (req, res) => {
 
     createResponse(res, players, 200);
   } catch (error) {
-    createError(res, "Server error", 500, error);
+    createError(res, error.message || "Server error", 500, error);
   }
 };
 
-export { getPlayerById, searchPlayerByName };
+// Search player by name
+const scrapeAndStorePlayerDataFromEspn = async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) return createError(res, "url is required", 400);
+
+    const data = await scrapePlayerDataFromEspn(url);
+    if (!data) return createError(res, `Incorrect URL or something went wrong`);
+
+    const existing = await PlayerSchema.findOne({ objectId: data.object_id });
+    if (existing)
+      return createError(res, `Player already exist: ${existing.fullName}`);
+
+    const newPlayer = new PlayerSchema({
+      ...data,
+      playerId: data.id,
+      fullName: data.full_name,
+      objectId: data.object_id,
+      espnUrl: url,
+    });
+
+    newPlayer
+      .save()
+      .then((p) => createResponse(res, p, 201))
+      .catch((err) =>
+        createError(res, err.message || `Error adding player to DB`, 500)
+      );
+  } catch (error) {
+    createError(res, error.message || "Server error", 500, error);
+  }
+};
+
+export { getPlayerById, searchPlayerByName, scrapeAndStorePlayerDataFromEspn };

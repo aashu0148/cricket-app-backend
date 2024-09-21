@@ -1,25 +1,43 @@
 import LeagueSchema from "./leagueSchema.js";
 import { createError, createResponse, getUniqueId } from "#utils/util.js";
 import { leagueTypeEnum, userRoleEnum } from "#utils/enums.js";
+import TournamentSchema from "#app/tournaments/tournamentSchema.js";
 
 // Create a new league
 const createLeague = async (req, res) => {
   try {
-    const { name, description, type, draftRoundStartDate, tournament } =
+    const { name, description, type, draftRoundStartDate, tournamentId } =
       req.body;
+    let password = req.body;
+    if (!password) password = getUniqueId(13).toUpperCase();
+
     const ownerId = req.user._id;
+
+    // Check if the tournament exists and if it has ended
+    const tournamentDetails = await TournamentSchema.findById(tournamentId);
+    if (!tournamentDetails) {
+      return createError(res, "Tournament not found", 404);
+    }
+
+    const currentDate = new Date();
+    if (tournamentDetails.endDate && currentDate > tournamentDetails.endDate) {
+      return createError(
+        res,
+        "Can not create a league for a tournament that has ended"
+      );
+    }
 
     const leagueData = {
       name,
       description,
       type,
-      tournament,
+      tournament: tournamentId,
       createdBy: ownerId,
       draftRound: {
         startDate: draftRoundStartDate,
         completed: false,
       },
-      password: getUniqueId(12).toUpperCase(),
+      password,
     };
 
     const league = new LeagueSchema(leagueData);
@@ -179,6 +197,87 @@ const joinLeague = async (req, res) => {
   }
 };
 
+const addPlayerToWishlist = async (req, res) => {
+  try {
+    const { leagueId, playerId } = req.body;
+    const userId = req.user._id;
+
+    // Find the league
+    const league = await LeagueSchema.findById(leagueId).lean();
+    if (!league) return createError(res, "League not found", 404);
+
+    // Find the team belonging to the user
+    const team = league.teams.find((t) => t.owner === userId);
+    if (!team) {
+      return createError(res, "Your team not found in this league", 404);
+    }
+
+    // Check if the player is already in the wishlist
+    if (team.wishlist.includes(playerId))
+      return createError(res, "Player is already in the wishlist", 400);
+
+    // Add player to the wishlist
+    team.wishlist.push(playerId);
+
+    // Save the league
+    await league.save();
+
+    createResponse(
+      res,
+      { message: "Player added to wishlist", wishlist: team.wishlist },
+      200
+    );
+  } catch (error) {
+    createError(
+      res,
+      error.message || "Error adding player to wishlist",
+      500,
+      error
+    );
+  }
+};
+
+const removePlayerFromWishlist = async (req, res) => {
+  try {
+    const { leagueId, playerId } = req.body;
+    const userId = req.user._id;
+
+    // Find the league
+    const league = await LeagueSchema.findById(leagueId).lean();
+    if (!league) return createError(res, "League not found", 404);
+
+    // Find the team belonging to the user
+    const team = league.teams.find((t) => t.owner === userId);
+    if (!team) {
+      return createError(res, "Your team not found in this league", 404);
+    }
+
+    // Check if the player is in the wishlist
+    const playerIndex = team.wishlist.indexOf(playerId);
+    if (playerIndex === -1)
+      return createError(res, "Player to remove not found in wishlist", 404);
+
+    // Remove player from the wishlist
+    team.wishlist.splice(playerIndex, 1);
+
+    // Save the league
+    await league.save();
+
+    createResponse(
+      res,
+      { message: "Player removed from wishlist", wishlist: team.wishlist },
+      200
+    );
+  } catch (error) {
+    createError(
+      res,
+      error.message || "Error removing player from wishlist",
+      500,
+      error
+    );
+  }
+};
+
 export {
   createLeague,
   getAllLeaguesOfTournament,
@@ -186,4 +285,6 @@ export {
   updateLeague,
   deleteLeague,
   joinLeague,
+  addPlayerToWishlist,
+  removePlayerFromWishlist,
 };

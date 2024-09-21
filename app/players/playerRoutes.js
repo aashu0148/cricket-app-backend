@@ -1,11 +1,23 @@
 import express from "express";
 
-import { getPlayerById, searchPlayerByName } from "./playerServices.js";
-import { authenticateUserMiddleware } from "#app/middleware/user.js";
+import {
+  getPlayerById,
+  scrapeAndStorePlayerDataFromEspn,
+  searchPlayerByName,
+} from "./playerServices.js";
+import {
+  authenticateAdminMiddleware,
+  authenticateUserMiddleware,
+} from "#app/middleware/user.js";
 
 const rootRouter = express.Router();
 const router = express.Router();
 
+router.get(
+  "/scrape",
+  authenticateAdminMiddleware,
+  scrapeAndStorePlayerDataFromEspn
+);
 router.get("/search", authenticateUserMiddleware, searchPlayerByName);
 router.get("/:id", authenticateUserMiddleware, getPlayerById);
 

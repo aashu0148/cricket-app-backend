@@ -25,7 +25,7 @@ const leagueSchema = new mongoose.Schema(
       default: leagueTypeEnum.PUBLIC,
     },
 
-    // Password
+    // Password (for private leagues)
     password: String,
 
     // Owner of the League
@@ -50,13 +50,21 @@ const leagueSchema = new mongoose.Schema(
           },
         ],
         joinedAt: { type: Date, default: Date.now },
+
+        // Wishlist for preferred players before the draft
+        wishlist: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Player",
+          },
+        ],
       },
     ],
 
     // Draft rounds details
     draftRound: {
       completed: Boolean,
-      startDate: Date,
+      startDate: { type: Date, required: true },
     },
   },
   { timestamps: true }
