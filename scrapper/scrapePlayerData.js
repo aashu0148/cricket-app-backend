@@ -137,7 +137,9 @@ async function scrapeCricketerUrlsFromSquadUrl(squadUrl) {
     const textResponse = await res.text();
     const dom = new DOMParser().parseFromString(textResponse, "text/html");
 
-    const urls = Array.from(dom.querySelectorAll("a[href^='/cricketers/']"))
+    const urls = Array.from(
+      dom.querySelectorAll(`a.ds-leading-none[href^="/cricketers/"]`)
+    )
       .map((item) => item.getAttribute("href"))
       .filter((e) => e)
       .map((e) => "https://www.espncricinfo.com" + e);

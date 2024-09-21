@@ -65,6 +65,11 @@ const leagueSchema = new mongoose.Schema(
     draftRound: {
       completed: Boolean,
       startDate: { type: Date, required: true },
+      currentTurn: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
     },
   },
   { timestamps: true }

@@ -1,7 +1,5 @@
-// import roomSchema from "../room/roomSchema.js";
-import { roomUserTypeEnum } from "../../util/constant.js";
-
-const SocketEvents = (io, rooms, updateRoom, deleteRoom) => {
+const SocketEvents = (io) => {
+  // Helper function to send notifications to a room
   const sendNotificationInRoom = (roomId, title, desc) => {
     io.to(roomId).emit("notification", {
       title: title || "",
@@ -9,193 +7,139 @@ const SocketEvents = (io, rooms, updateRoom, deleteRoom) => {
     });
   };
 
+  // Helper function to send errors to a specific socket
   const sendSocketError = (socket, message) => {
     socket.emit("error", message);
   };
 
-  const removeUserFromRooms = (uid, rid, socket) => {
-    let room;
-    if (rid) room = rooms[rid];
-    else {
-      const roomKey = Object.keys(rooms).find((key) =>
-        rooms[key]?.users
-          ? rooms[key].users.some((item) => item._id == uid)
-          : false
-      );
+  // Function to handle leaving a room
+  const leaveRoomSocketHandler = (socket, obj) => {
+    if (!obj?.roomId || !obj?.userId) return;
 
-      if (roomKey) rid = roomKey;
-      room = roomKey ? rooms[roomKey] : undefined;
-    }
-
-    if (!room) return null;
-
-    const user = room.users ? room.users.find((item) => item._id == uid) : {};
-    let newUsers = room.users
-      ? room.users.filter((item) => item._id !== uid)
-      : [];
-
-    const updatedRoom = updateRoom(rid, { users: newUsers });
-
-    if (user && socket) {
-      sendNotificationInRoom(rid, `${user?.name || "undefined"} left the room`);
-      socket.leave(rid);
-    }
-
-    return { user, room: updatedRoom };
+    const { roomId, userId } = obj;
+    socket.leave(roomId); // Leave the room
+    socket.emit("left-room", { _id: roomId }); // Notify user
+    sendNotificationInRoom(roomId, `${userId} left the room`);
+    io.to(roomId).emit("users-change", {
+      _id: roomId,
+      users: getUpdatedRoomUsers(roomId),
+    });
   };
 
-  io.on("connection", (socket) => {
-    const leaveRoomSocketHandler = (obj) => {
-      if (!obj?.roomId || !obj?.userId) return;
+  // Function to handle draft pick
+  const handleDraftPick = (socket, obj) => {
+    const { roomId, userId, playerId } = obj;
 
-      const { roomId, userId } = obj;
+    if (!roomId || !userId || !playerId) {
+      sendSocketError(socket, "Missing required data for draft pick.");
+      return;
+    }
 
-      const updatedRoom = removeUserFromRooms(userId, roomId, socket);
-      socket.emit("left-room", { _id: roomId });
+    const currentTurn = getCurrentDraftTurn(roomId); // Fetch the team whose turn it is
 
-      if (!updatedRoom?.room?.users?.length) deleteRoom(roomId);
-    };
+    if (currentTurn !== userId) {
+      sendSocketError(socket, "It's not your turn to pick.");
+      return;
+    }
 
-    const checkForUserInRoom = (
-      socket,
-      roomId,
+    const playerSelected = selectPlayerForTeam(roomId, userId, playerId); // Handle player selection
+    if (!playerSelected) {
+      sendSocketError(socket, "Player not available or already picked.");
+      return;
+    }
+
+    io.to(roomId).emit("draft-pick", {
       userId,
-      doNotSendError = false
-    ) => {
-      let room = rooms[roomId] ? rooms[roomId] : undefined;
+      playerId,
+      teamId: currentTurn.teamId,
+    });
 
-      if (!room) {
-        if (!doNotSendError) sendSocketError(socket, "Room not found");
-        return false;
-      }
+    // Notify everyone in the room about the selection
+    sendNotificationInRoom(
+      roomId,
+      "Draft Update",
+      `${userId} picked player ${playerId}`
+    );
 
-      const user = room.users.find((item) => item._id == userId);
-      if (!user) {
-        if (!doNotSendError)
-          sendSocketError(socket, `user not found in the room: ${room.name}`);
-        return false;
-      }
+    // Move to next turn
+    moveToNextDraftTurn(roomId);
+    io.to(roomId).emit("turn-change", {
+      nextTurn: getCurrentDraftTurn(roomId),
+    });
+  };
 
-      return { room, user };
-    };
-
+  // Main connection handler
+  io.on("connection", (socket) => {
+    // Handle joining the room
     socket.on("join-room", async (obj) => {
-      if (!obj?.roomId || !obj?.userId) return;
+      const { roomId, userId, name } = obj;
 
-      const { roomId, userId, name, email, profileImage } = obj;
+      if (!roomId || !userId) {
+        sendSocketError(socket, "Missing roomId or userId.");
+        return;
+      }
+
+      // Remove user from previous rooms, if any
       removeUserFromRooms(userId, null, socket);
-      let room = rooms[roomId] ? { ...rooms[roomId] } : undefined;
 
-      const user = {
-        _id: userId,
-        name,
-        email,
-        profileImage,
-        heartbeat: Date.now(),
-      };
-
-      // if (room) {
-      //   user.role =
-      //     room.owner?._id == userId
-      //       ? roomUserTypeEnum.owner
-      //       : Array.isArray(room.admins) && room.admins.includes(userId)
-      //       ? roomUserTypeEnum.admin
-      //       : roomUserTypeEnum.member;
-
-      //   room.users = Array.isArray(room.users) ? [...room.users, user] : [user];
-      // } else {
-      //   room = await roomSchema
-      //     .findOne({ _id: roomId })
-      //     .populate({
-      //       path: "playlist",
-      //       options: {
-      //         transform: (doc) =>
-      //           typeof doc !== "object"
-      //             ? null
-      //             : {
-      //                 ...doc,
-      //                 _id: doc?._id?.toString
-      //                   ? doc._id.toString()
-      //                   : doc?._id || "dummy_id",
-      //               },
-      //       },
-      //     })
-      //     .populate({
-      //       path: "owner",
-      //       select: "-token -createdAt",
-      //     })
-      //     .lean();
-
-      //   if (!room) {
-      //     sendSocketError(socket, "Room not found in the database");
-      //     return;
-      //   }
-
-      //   user.role =
-      //     room.owner?._id == userId
-      //       ? roomUserTypeEnum.owner
-      //       : Array.isArray(room.admins) && room.admins.includes(userId)
-      //       ? roomUserTypeEnum.admin
-      //       : roomUserTypeEnum.member;
-
-      //   room = {
-      //     ...room,
-      //     users: [user],
-      //     chats: [],
-      //     admins: room.admins?.length ? room.admins : [],
-      //     controllers: [],
-      //     currentSong: room.playlist[0] ? room.playlist[0]._id : "",
-      //     lastPlayedAt: Date.now(),
-      //     paused: false,
-      //     secondsPlayed: 0,
-      //   };
-      // }
-
-      // const updatedRoom = updateRoom(roomId, room);
+      // Join the new room
       socket.join(roomId);
+
+      const updatedRoom = getUpdatedRoom(roomId);
+
       socket.emit("joined-room", { ...updatedRoom, _id: roomId });
       sendNotificationInRoom(roomId, `${name} joined the room`);
 
+      // Notify everyone about the updated users
       io.to(roomId).emit("users-change", {
         users: updatedRoom.users || [],
         _id: roomId,
       });
     });
 
-    socket.on("leave-room", leaveRoomSocketHandler);
+    // Handle leaving the room
+    socket.on("leave-room", (obj) => leaveRoomSocketHandler(socket, obj));
 
-    socket.on("get-room", async (obj) => {
-      if (!obj?.roomId || !obj?.userId) return;
-
-      const { roomId, userId } = obj;
-
-      const roomCheck = checkForUserInRoom(socket, roomId, userId);
-      if (!roomCheck) return;
-
-      const { room, user } = roomCheck;
-
-      socket.emit("get-room", { room });
-    });
-
-    socket.on("alive", async (obj) => {
-      if (!obj?.roomId || !obj?.userId) return;
-
-      const { roomId, userId } = obj;
-
-      const roomCheck = checkForUserInRoom(socket, roomId, userId, true);
-      if (!roomCheck) return;
-
-      const { room, user } = roomCheck;
-
-      const newUsers = room.users.map((item) =>
-        item._id == userId ? { ...item, heartbeat: Date.now() } : item
-      );
-
-      updateRoom(roomId, {
-        users: newUsers,
-      });
-    });
+    // Handle draft pick during the draft round
+    socket.on("draft-pick", (obj) => handleDraftPick(socket, obj));
   });
+};
+
+// Helper functions (these would interact with your backend/database)
+const getUpdatedRoom = (roomId) => {
+  // Fetch room details including users
+  return {
+    _id: roomId,
+    users: getUpdatedRoomUsers(roomId),
+  };
+};
+
+const getUpdatedRoomUsers = (roomId) => {
+  // Fetch and return the list of users in the room
+  // This should query your database for the room's user list
+  return []; // Example: return the array of users
+};
+
+const getCurrentDraftTurn = (roomId) => {
+  // Logic to return the team/user whose turn it is to pick
+  // Example: return the user ID or team ID
+  return "someUserId";
+};
+
+const selectPlayerForTeam = (roomId, userId, playerId) => {
+  // Logic to assign a player to a user's team during draft
+  // Example: check if the player is available and assign to the team
+  return true; // Return true if successful, false otherwise
+};
+
+const moveToNextDraftTurn = (roomId) => {
+  // Logic to advance the draft to the next user's turn
+  // Example: update the draft round data to move to the next user
+};
+
+const removeUserFromRooms = (userId, currentRoomId, socket) => {
+  // Logic to remove a user from all rooms they are currently in
+  // Example: iterate over rooms and remove the user
 };
 
 export default SocketEvents;

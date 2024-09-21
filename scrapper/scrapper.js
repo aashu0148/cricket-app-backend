@@ -1,4 +1,5 @@
 import axios from "axios";
+import { parse as parseHtmlAsDOM } from "node-html-parser";
 
 import {
   getMatchesUrlFromTournamentUrl,
@@ -440,7 +441,12 @@ async function scrapePlayerDataFromEspn(url) {
         rowData[colsNames[index]] = cell.innerText.trim();
       });
 
-      data.push(rowData);
+      let final = {};
+      for (const k in rowData) {
+        final[k.toLowerCase()] = rowData[k];
+      }
+
+      data.push(final);
     });
 
     return data;
@@ -449,7 +455,7 @@ async function scrapePlayerDataFromEspn(url) {
   try {
     const res = await fetch(url);
     const textResponse = await res.text();
-    const dom = new DOMParser().parseFromString(textResponse, "text/html");
+    const dom = parseHtmlAsDOM(textResponse);
 
     const tables = Array.from(dom.querySelectorAll("table")).slice(0, 2);
     const allStats = [];
@@ -467,10 +473,12 @@ async function scrapePlayerDataFromEspn(url) {
       ? dom.querySelector(".ds-bg-cover img").getAttribute("src")
       : null;
     const information = Array.from(
-      dom.querySelector(".ds-grid.ds-grid-cols-2").querySelectorAll("& > div")
+      dom
+        .querySelector(".ds-grid.ds-grid-cols-2")
+        .querySelectorAll(":scope > div")
     )
       .map((box) => {
-        let label = box.querySelector("div>p").textContent;
+        let label = box.querySelector(":scope > p").textContent;
         const value = box.querySelector("span>p").textContent;
 
         if (label) label = label.toLowerCase().trim().replace(" ", "_");

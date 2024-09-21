@@ -63,7 +63,10 @@ const searchPlayerByName = async (req, res) => {
     }
 
     const players = await PlayerSchema.find({
-      fullName: new RegExp(name, "i"), // Case-insensitive search
+      $or: [
+        { fullName: new RegExp(name, "i") }, // Case-insensitive search by fullName
+        { country: new RegExp(name, "i") }, // Case-insensitive search by country
+      ],
     });
 
     createResponse(res, players, 200);
