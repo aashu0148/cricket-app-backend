@@ -6,6 +6,7 @@ import {
   updateTournament,
   deleteTournament,
   getOngoingUpcomingTournaments,
+  refreshTournament,
 } from "./tournamentServices.js";
 import {
   authenticateAdminMiddleware,
@@ -17,6 +18,9 @@ const router = express.Router();
 
 // Create a new tournament (Admin only)
 router.post("/", authenticateAdminMiddleware, createTournament);
+
+// Create a new tournament (Admin only)
+router.post("/refresh/:id", authenticateAdminMiddleware, refreshTournament);
 
 // Get all tournaments
 router.get("/", authenticateUserMiddleware, getAllTournaments);

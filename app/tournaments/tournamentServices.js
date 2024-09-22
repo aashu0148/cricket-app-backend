@@ -15,6 +15,7 @@ import {
   calculateAndStoreMatchPlayerPoints,
   insertMatchIntoDB,
 } from "#app/matches/matchServices.js";
+import { espnOrigin } from "#scrapper/scrapperConstants.js";
 
 const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
   try {
@@ -149,6 +150,47 @@ const createTournament = async (req, res) => {
   }
 };
 
+const refreshTournament = async (req, res) => {
+  const tId = req.params.id;
+
+  try {
+    const tournament = await TournamentSchema.findOne({
+      _id: tId,
+    });
+    if (!tournament) return createError(res, `Tournament do not exist`, 400);
+
+    const url = `${espnOrigin}/series/${tournament.slug}-${tournament.objectId}`;
+    const allMatchesRes = await scrapeMatchesFromTournamentUrl(url);
+    if (!allMatchesRes.success) return createError(res, allMatchesRes.error);
+
+    const squadsRes = await scrapeSquadsFromTournamentUrl(url);
+    if (!squadsRes.success) return createError(res, squadsRes.error);
+
+    const playersRes = await scrapePlayerIdsFromTournamentUrl(url);
+    if (!playersRes.success) return createError(res, playersRes.error);
+
+    if (allMatchesRes.matches?.length)
+      tournament.allMatches = allMatchesRes.matches;
+    if (squadsRes.squads?.length) tournament.allSquads = squadsRes.squads;
+    if (playersRes.playerIds?.length) tournament.players = playersRes.playerIds;
+
+    tournament
+      .save()
+      .then((t) => {
+        insertMatchesResultsToTournamentIfNeeded(t._id);
+        createResponse(res, t, 200);
+      })
+      .catch((err) => createError(res, err?.message, 500, err));
+  } catch (err) {
+    createError(
+      res,
+      err.message || "Error refreshing tournament data",
+      500,
+      err
+    );
+  }
+};
+
 // Get all tournaments
 const getAllTournaments = async (req, res) => {
   const str = req.query.tournamentIds;
@@ -270,6 +312,7 @@ const deleteTournament = async (req, res) => {
 
 export {
   createTournament,
+  refreshTournament,
   getAllTournaments,
   getOngoingUpcomingTournaments,
   getTournamentById,
