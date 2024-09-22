@@ -95,12 +95,15 @@ const createTournament = async (req, res) => {
     const existing = await TournamentSchema.findOne({
       objectId: tournamentObjId,
     });
-    if (existing)
-      return createError(
-        res,
-        `Tournament: ${existing.name} already exist`,
-        400
-      );
+    const tournamentAlreadyExist = existing ? true : false;
+    if (tournamentAlreadyExist && new Date() > new Date(existing?.endDate))
+      return createError(res, `Tournament: ${existing.name} already ended`);
+    // if (existing)
+    //   return createError(
+    //     res,
+    //     `Tournament: ${existing.name} already exist`,
+    //     400
+    //   );
 
     const allMatchesRes = await scrapeMatchesFromTournamentUrl(espnUrl);
     if (!allMatchesRes.success) return createError(res, allMatchesRes.error);
@@ -111,21 +114,36 @@ const createTournament = async (req, res) => {
     const playersRes = await scrapePlayerIdsFromTournamentUrl(espnUrl);
     if (!playersRes.success) return createError(res, playersRes.error);
 
-    const tournament = new TournamentSchema({
-      ...tournamentData.data,
-      allMatches: allMatchesRes.matches,
-      allSquads: squadsRes.squads,
-      players: playersRes.playerIds,
-      scoringSystem: scoringSystemId,
-    });
+    if (tournamentAlreadyExist) {
+      if (allMatchesRes.matches?.length)
+        existing.allMatches = allMatchesRes.matches;
+      if (squadsRes.squads?.length) existing.allSquads = squadsRes.squads;
+      if (playersRes.playerIds?.length) existing.players = playersRes.playerIds;
 
-    tournament
-      .save()
-      .then((t) => {
-        insertMatchesResultsToTournamentIfNeeded(t._id);
-        createResponse(res, t, 201);
-      })
-      .catch((err) => createError(res, err?.message, 500, err));
+      existing
+        .save()
+        .then((t) => {
+          insertMatchesResultsToTournamentIfNeeded(t._id);
+          createResponse(res, t, 200);
+        })
+        .catch((err) => createError(res, err?.message, 500, err));
+    } else {
+      const tournament = new TournamentSchema({
+        ...tournamentData.data,
+        allMatches: allMatchesRes.matches,
+        allSquads: squadsRes.squads,
+        players: playersRes.playerIds,
+        scoringSystem: scoringSystemId,
+      });
+
+      tournament
+        .save()
+        .then((t) => {
+          insertMatchesResultsToTournamentIfNeeded(t._id);
+          createResponse(res, t, 201);
+        })
+        .catch((err) => createError(res, err?.message, 500, err));
+    }
   } catch (err) {
     createError(res, err.message || "Error creating tournament", 500, err);
   }
