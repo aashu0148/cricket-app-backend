@@ -8,7 +8,7 @@ const createLeague = async (req, res) => {
   try {
     const { name, description, type, draftRoundStartDate, tournamentId } =
       req.body;
-    let password = req.body;
+    let { password } = req.body;
     if (!password) password = getUniqueId(13).toUpperCase();
 
     const ownerId = req.user._id;
@@ -27,7 +27,7 @@ const createLeague = async (req, res) => {
       );
     }
 
-    const leagueData = {
+    const league = new LeagueSchema({
       name,
       description,
       type,
@@ -38,9 +38,15 @@ const createLeague = async (req, res) => {
         completed: false,
       },
       password,
-    };
-
-    const league = new LeagueSchema(leagueData);
+      teams: [
+        {
+          owner: req.user._id,
+          joinedAt: new Date(),
+          players: [],
+          wishlist: [],
+        },
+      ],
+    });
 
     league
       .save()
@@ -49,6 +55,7 @@ const createLeague = async (req, res) => {
         createError(res, err.message || "Failed to create league", 500, err)
       );
   } catch (error) {
+    console.error("Error creating league: ", err.message);
     createError(res, error.message || "Error creating league", 500, error);
   }
 };
