@@ -15,7 +15,7 @@ const matchSchema = new mongoose.Schema({
       slug: String,
       name: String,
       country: String,
-      url: String,
+      image: String,
     },
   ],
 });
