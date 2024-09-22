@@ -248,7 +248,9 @@ const getOngoingUpcomingTournaments = async (req, res) => {
           startDate: { $gte: currentDate },
         },
       ],
-    }).populate("players", "name image country fullName");
+    })
+      .populate("players", "name image country fullName")
+      .lean();
 
     for (let t of tournaments) {
       const matchIds = t.allMatches.map((e) => e.objectId);
