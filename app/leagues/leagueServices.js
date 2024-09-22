@@ -116,6 +116,33 @@ const getJoinedLeagues = async (req, res) => {
   }
 };
 
+// Get league by ID
+const getJoinedActiveLeagues = async (req, res) => {
+  const userId = req.user?._id;
+  const currentDate = new Date();
+
+  try {
+    const leagues = await LeagueSchema.find({
+      "teams.owner": userId,
+    })
+      .populate({
+        path: "tournament",
+        select: "name season startDate endDate scoringSystem longName",
+        match: {
+          endDate: { $gte: currentDate }, // Tournament not ended
+        },
+      })
+      .populate("teams.owner", "-token -role")
+      .lean();
+
+    const final = leagues.filter((e) => e.tournament); // manually remove past date tournaments
+
+    createResponse(res, final, 200);
+  } catch (error) {
+    createError(res, "Error fetching joined league", 500, error);
+  }
+};
+
 // Update a league (only by owner or admin)
 const updateLeague = async (req, res) => {
   try {
@@ -314,4 +341,5 @@ export {
   addPlayerToWishlist,
   removePlayerFromWishlist,
   getJoinedLeagues,
+  getJoinedActiveLeagues,
 };

@@ -9,6 +9,7 @@ import {
   addPlayerToWishlist,
   removePlayerFromWishlist,
   getJoinedLeagues,
+  getJoinedActiveLeagues,
 } from "./leagueServices.js";
 import { authenticateUserMiddleware } from "#app/middleware/user.js";
 
@@ -17,6 +18,13 @@ const router = express.Router();
 
 // Get joined Leagues
 router.get("/joined", authenticateUserMiddleware, getJoinedLeagues);
+
+// Get joined active Leagues
+router.get(
+  "/joined/active",
+  authenticateUserMiddleware,
+  getJoinedActiveLeagues
+);
 
 // Create a new league (authenticated users only)
 router.post("/", authenticateUserMiddleware, createLeague);
