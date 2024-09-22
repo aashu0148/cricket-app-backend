@@ -32,6 +32,11 @@ const squadSchema = new mongoose.Schema({
 
 const schema = new mongoose.Schema(
   {
+    active: {
+      type: Boolean,
+      default: true,
+      required: true,
+    },
     scoringSystem: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ScoringSystem",

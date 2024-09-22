@@ -289,7 +289,7 @@ const getTournamentById = async (req, res) => {
 // Update a tournament
 const updateTournament = async (req, res) => {
   const { id } = req.params;
-  const { name, startDate, endDate, scoringSystemId } = req.body;
+  const { active, name, startDate, endDate, scoringSystemId } = req.body;
 
   try {
     const tournament = await TournamentSchema.findById(id);
@@ -297,6 +297,7 @@ const updateTournament = async (req, res) => {
       return createError(res, "Tournament not found", 404);
     }
 
+    if (active) tournament.active = active;
     if (name) tournament.name = name;
     if (startDate) tournament.startDate = startDate;
     if (endDate) tournament.endDate = endDate;
