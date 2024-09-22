@@ -27,6 +27,12 @@ const createLeague = async (req, res) => {
       );
     }
 
+    if (new Date(draftRoundStartDate) > tournamentDetails.endDate)
+      return createError(
+        res,
+        "Draft round can nto be scheduled after tournament ends"
+      );
+
     const league = new LeagueSchema({
       name,
       description,
@@ -60,21 +66,46 @@ const createLeague = async (req, res) => {
   }
 };
 
+const getLeaguesBasedOnFilter = async (filter) => {
+  return await LeagueSchema.find(filter)
+    .populate(
+      "tournament",
+      "name season startDate endDate scoringSystem longName"
+    )
+    .populate("createdBy", "-token -role")
+    .populate("teams.owner", "-token -role")
+    .lean();
+};
+
 // Get all leagues of tournament
 const getAllLeaguesOfTournament = async (req, res) => {
   const tid = req.params.id;
   try {
-    const leagues = await LeagueSchema.find({ tournament: tid })
-      .populate(
-        "tournament",
-        "name season startDate endDate scoringSystem longName"
-      )
-      .populate("createdBy", "-token -role")
-      .populate("teams.owner", "-token -role");
+    const leagues = await getLeaguesBasedOnFilter({ tournament: tid });
 
     createResponse(res, leagues, 200);
   } catch (error) {
     createError(res, error.message || "Failed to fetch leagues", 500, error);
+  }
+};
+
+// Get all leagues of tournament
+const getJoinableLeaguesOfTournament = async (req, res) => {
+  const tid = req.params.id;
+  try {
+    const leagues = await getLeaguesBasedOnFilter({
+      tournament: tid,
+      "draftRound.completed": false,
+    });
+
+    createResponse(res, leagues, 200);
+  } catch (error) {
+    createError(
+      res,
+      error.message || "Failed to get joinable leagues",
+      500,
+      error
+    );
   }
 };
 
@@ -103,15 +134,9 @@ const getLeagueById = async (req, res) => {
 const getJoinedLeagues = async (req, res) => {
   const userId = req.user?._id;
   try {
-    const leagues = await LeagueSchema.find({
+    const leagues = await getLeaguesBasedOnFilter({
       "teams.owner": userId,
-    })
-      .populate(
-        "tournament",
-        "name season startDate endDate scoringSystem longName"
-      )
-      .populate("createdBy", "-token -role")
-      .populate("teams.owner", "-token -role");
+    });
 
     createResponse(res, leagues, 200);
   } catch (error) {
@@ -239,10 +264,24 @@ const joinLeague = async (req, res) => {
       return createError(res, "Invalid password", 401);
     }
 
+    if (league.draftRound.completed)
+      return createError(
+        res,
+        "Can nto join a league after draft round is completed"
+      );
+
     // Check if league has space for more teams
     if (league.teams.length >= 10) {
       return createError(res, "League is full", 403);
     }
+
+    const timeDiff = new Date(league.draftRound.startDate) - new Date();
+
+    if (timeDiff < 60 * 60 * 1000)
+      return createError(
+        res,
+        "Can not join a league after draft round has started or about to start"
+      );
 
     // Add the user's team to the league
     league.teams.push({ owner: userId, players: [], joinedAt: new Date() });
@@ -346,4 +385,5 @@ export {
   removePlayerFromWishlist,
   getJoinedLeagues,
   getJoinedActiveLeagues,
+  getJoinableLeaguesOfTournament,
 };
