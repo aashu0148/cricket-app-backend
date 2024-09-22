@@ -5,6 +5,7 @@ import {
   getTournamentById,
   updateTournament,
   deleteTournament,
+  getOngoingUpcomingTournaments,
 } from "./tournamentServices.js";
 import {
   authenticateAdminMiddleware,
@@ -19,6 +20,12 @@ router.post("/", authenticateAdminMiddleware, createTournament);
 
 // Get all tournaments
 router.get("/", authenticateUserMiddleware, getAllTournaments);
+
+router.get(
+  "/ongoing-upcoming",
+  authenticateUserMiddleware,
+  getOngoingUpcomingTournaments
+);
 
 // Get a specific tournament by ID
 router.get("/:id", authenticateUserMiddleware, getTournamentById);

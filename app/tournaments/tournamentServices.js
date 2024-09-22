@@ -143,6 +143,31 @@ const getAllTournaments = async (req, res) => {
   }
 };
 
+// Get ongoing or upcoming tournaments
+const getOngoingUpcomingTournaments = async (req, res) => {
+  try {
+    const currentDate = new Date();
+
+    const tournaments = await TournamentSchema.find({
+      $or: [
+        {
+          // Ongoing tournaments
+          endDate: { $gte: currentDate },
+        },
+        {
+          // Upcoming tournaments
+          startDate: { $gte: currentDate },
+        },
+      ],
+    })
+      .populate("players", "name image country fullName")
+      .populate("matches", "objectId");
+    createResponse(res, tournaments, 200);
+  } catch (err) {
+    createError(res, err.message || "Error fetching tournaments", 500, err);
+  }
+};
+
 // Get a specific tournament by ID
 const getTournamentById = async (req, res) => {
   const { id } = req.params;
@@ -199,6 +224,7 @@ const deleteTournament = async (req, res) => {
 export {
   createTournament,
   getAllTournaments,
+  getOngoingUpcomingTournaments,
   getTournamentById,
   updateTournament,
   deleteTournament,
