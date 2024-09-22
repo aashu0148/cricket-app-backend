@@ -134,7 +134,10 @@ const createTournament = async (req, res) => {
 // Get all tournaments
 const getAllTournaments = async (req, res) => {
   try {
-    const tournaments = await TournamentSchema.find();
+    const tournaments = await TournamentSchema.find().populate(
+      "players",
+      "name image country fullName"
+    );
     createResponse(res, tournaments, 200);
   } catch (err) {
     createError(res, err.message || "Error fetching tournaments", 500, err);
