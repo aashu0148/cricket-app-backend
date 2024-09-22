@@ -90,6 +90,25 @@ const getLeagueById = async (req, res) => {
   }
 };
 
+// Get league by ID
+const getJoinedLeagues = async (req, res) => {
+  const userId = req.user?._id;
+  try {
+    const leagues = await LeagueSchema.find({
+      "teams.owner": userId,
+    })
+      .populate(
+        "tournament",
+        "name season startDate endDate scoringSystem longName"
+      )
+      .populate("teams.owner", "-token -role");
+
+    createResponse(res, leagues, 200);
+  } catch (error) {
+    createError(res, "Error fetching joined league", 500, error);
+  }
+};
+
 // Update a league (only by owner or admin)
 const updateLeague = async (req, res) => {
   try {
@@ -287,4 +306,5 @@ export {
   joinLeague,
   addPlayerToWishlist,
   removePlayerFromWishlist,
+  getJoinedLeagues,
 };

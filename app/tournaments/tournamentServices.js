@@ -1,4 +1,7 @@
 import TournamentSchema from "./tournamentSchema.js";
+import MatchSchema from "#app/matches/matchSchema.js";
+import ScoringSystemSchema from "#app/scoringSystems/scoringSystemSchema.js";
+
 import { createError, createResponse } from "#utils/util.js";
 import {
   getTournamentDataFromUrl,
@@ -12,27 +15,24 @@ import {
   calculateAndStoreMatchPlayerPoints,
   insertMatchIntoDB,
 } from "#app/matches/matchServices.js";
-import ScoringSystemSchema from "#app/scoringSystems/scoringSystemSchema.js";
 
 const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
   try {
-    const tournament = await TournamentSchema.findById(tournamentId).populate(
-      "matches"
-    );
+    const tournament = await TournamentSchema.findById(tournamentId);
 
-    const matches = tournament.matches;
     const allMatches = tournament.allMatches;
-
     const needToFetchResultFor = [];
-    allMatches.forEach((m) => {
-      const matchAlreadyPresent = matches.some(
-        (item) => item.objectId === m.objectId
-      );
+    for (const m of allMatches) {
+      const completedMatch = await MatchSchema.findOne({
+        objectId: m.objectId,
+      });
+
+      const matchAlreadyPresent = completedMatch?._id ? true : false;
       const matchIsInFuture = new Date(m.startDate) > new Date();
-      if (matchAlreadyPresent || matchIsInFuture) return;
+      if (matchAlreadyPresent || matchIsInFuture) continue;
 
       needToFetchResultFor.push({ objectId: m.objectId, slug: m.slug });
-    });
+    }
 
     for (const obj of needToFetchResultFor) {
       const matchPageUrl = getMatchResultPageUrl({
@@ -55,10 +55,10 @@ const insertMatchesResultsToTournamentIfNeeded = async (tournamentId) => {
         const matchId = res.data?._id;
         console.log(`✅ New match data inserted[${matchId}] for: ${obj.slug}`);
 
-        await TournamentSchema.updateOne(
-          { _id: tournament._id },
-          { $push: { matches: matchId } }
-        );
+        // await TournamentSchema.updateOne(
+        //   { _id: tournament._id },
+        //   { $push: { matches: matchId } }
+        // );
 
         await calculateAndStoreMatchPlayerPoints(matchId);
       }
@@ -133,10 +133,39 @@ const createTournament = async (req, res) => {
 
 // Get all tournaments
 const getAllTournaments = async (req, res) => {
+  const str = req.query.tournamentIds;
+  let ids = [];
+
   try {
-    const tournaments = await TournamentSchema.find()
+    const filterObj = {};
+    if (str) {
+      ids = str
+        .split(",")
+        .map((e) => e.trim())
+        .filter((e) => e);
+
+      if (ids.length)
+        filterObj["_id"] = {
+          $in: ids,
+        };
+    }
+
+    const tournaments = await TournamentSchema.find(filterObj)
       .populate("players", "name image country fullName")
-      .populate("matches", "objectId");
+      .lean();
+
+    for (let t of tournaments) {
+      const matchIds = t.allMatches.map((e) => e.objectId);
+
+      const completedMatches = await MatchSchema.find({
+        objectId: {
+          $in: matchIds,
+        },
+      }).select("objectId");
+
+      t.completedMatches = completedMatches;
+    }
+
     createResponse(res, tournaments, 200);
   } catch (err) {
     createError(res, err.message || "Error fetching tournaments", 500, err);

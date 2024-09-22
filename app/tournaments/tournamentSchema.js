@@ -51,12 +51,6 @@ const schema = new mongoose.Schema(
       type: Date,
       required: true,
     },
-    matches: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Match",
-      },
-    ],
     allMatches: [matchSchema],
     allSquads: [squadSchema],
     players: [
