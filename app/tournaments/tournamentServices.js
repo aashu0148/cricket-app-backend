@@ -114,7 +114,7 @@ const createTournament = async (req, res) => {
     const tournament = new TournamentSchema({
       ...tournamentData.data,
       allMatches: allMatchesRes.matches,
-      squads: squadsRes.squads,
+      allSquads: squadsRes.squads,
       players: playersRes.playerIds,
       scoringSystem: scoringSystemId,
     });
