@@ -248,9 +248,20 @@ const getOngoingUpcomingTournaments = async (req, res) => {
           startDate: { $gte: currentDate },
         },
       ],
-    })
-      .populate("players", "name image country fullName")
-      .populate("matches", "objectId");
+    }).populate("players", "name image country fullName");
+
+    for (let t of tournaments) {
+      const matchIds = t.allMatches.map((e) => e.objectId);
+
+      const completedMatches = await MatchSchema.find({
+        objectId: {
+          $in: matchIds,
+        },
+      }).select("objectId");
+
+      t.completedMatches = completedMatches;
+    }
+
     createResponse(res, tournaments, 200);
   } catch (err) {
     createError(res, err.message || "Error fetching tournaments", 500, err);
