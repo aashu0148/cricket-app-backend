@@ -69,6 +69,7 @@ const getAllLeaguesOfTournament = async (req, res) => {
         "tournament",
         "name season startDate endDate scoringSystem longName"
       )
+      .populate("createdBy", "-token -role")
       .populate("teams.owner", "-token -role");
 
     createResponse(res, leagues, 200);
@@ -85,6 +86,7 @@ const getLeagueById = async (req, res) => {
         "tournament",
         "name season startDate endDate scoringSystem longName"
       )
+      .populate("createdBy", "-token -role")
       .populate("teams.owner", "-token -role");
 
     if (!league) {
@@ -108,6 +110,7 @@ const getJoinedLeagues = async (req, res) => {
         "tournament",
         "name season startDate endDate scoringSystem longName"
       )
+      .populate("createdBy", "-token -role")
       .populate("teams.owner", "-token -role");
 
     createResponse(res, leagues, 200);
@@ -133,6 +136,7 @@ const getJoinedActiveLeagues = async (req, res) => {
         },
       })
       .populate("teams.owner", "-token -role")
+      .populate("createdBy", "-token -role")
       .lean();
 
     const final = leagues.filter((e) => e.tournament); // manually remove past date tournaments
