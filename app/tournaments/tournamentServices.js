@@ -238,6 +238,7 @@ const getOngoingUpcomingTournaments = async (req, res) => {
     const currentDate = new Date();
 
     const tournaments = await TournamentSchema.find({
+      active: true,
       $or: [
         {
           // Ongoing tournaments
@@ -282,6 +283,16 @@ const getTournamentById = async (req, res) => {
     if (!tournament) {
       return createError(res, "Tournament not found", 404);
     }
+
+    const matchIds = tournament.allMatches.map((e) => e.objectId);
+    const completedMatches = await MatchSchema.find({
+      objectId: {
+        $in: matchIds,
+      },
+    }).select("objectId");
+
+    tournament.completedMatches = completedMatches;
+
     createResponse(res, tournament, 200);
   } catch (err) {
     createError(res, err.message || "Error fetching tournament", 500, err);
@@ -324,6 +335,71 @@ const deleteTournament = async (req, res) => {
   }
 };
 
+// Add a player to a tournament
+const addPlayerToTournament = async (req, res) => {
+  const { id } = req.params;
+  const { playerId } = req.body;
+
+  try {
+    const tournament = await TournamentSchema.findById(id);
+    if (!tournament) {
+      return createError(res, "Tournament not found", 404);
+    }
+
+    if (tournament.players.includes(playerId)) {
+      return createError(res, "Player is already in the tournament", 400);
+    }
+
+    tournament.players.push(playerId);
+
+    await tournament.save();
+
+    createResponse(res, tournament, 200);
+  } catch (err) {
+    createError(
+      res,
+      err.message || "Error adding player to tournament",
+      500,
+      err
+    );
+  }
+};
+
+// Delete a player from a tournament
+const deletePlayerFromTournament = async (req, res) => {
+  const { id } = req.params;
+  const { playerId } = req.body;
+
+  try {
+    const tournament = await TournamentSchema.findById(id);
+    if (!tournament) {
+      return createError(res, "Tournament not found", 404);
+    }
+
+    const playerIndex = tournament.players.indexOf(playerId);
+    if (playerIndex === -1) {
+      return createError(
+        res,
+        "Player not found in the tournament to delete",
+        404
+      );
+    }
+
+    tournament.players.splice(playerIndex, 1);
+
+    await tournament.save();
+
+    createResponse(res, tournament, 200);
+  } catch (err) {
+    createError(
+      res,
+      err.message || "Error removing player from tournament",
+      500,
+      err
+    );
+  }
+};
+
 export {
   createTournament,
   refreshTournament,
@@ -333,4 +409,6 @@ export {
   updateTournament,
   deleteTournament,
   insertMatchesResultsToTournamentIfNeeded,
+  addPlayerToTournament,
+  deletePlayerFromTournament,
 };

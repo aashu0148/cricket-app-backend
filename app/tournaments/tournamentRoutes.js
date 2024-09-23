@@ -7,6 +7,8 @@ import {
   deleteTournament,
   getOngoingUpcomingTournaments,
   refreshTournament,
+  addPlayerToTournament,
+  deletePlayerFromTournament,
 } from "./tournamentServices.js";
 import {
   authenticateAdminMiddleware,
@@ -18,6 +20,16 @@ const router = express.Router();
 
 // Create a new tournament (Admin only)
 router.post("/", authenticateAdminMiddleware, createTournament);
+
+// Add player (Admin only)
+router.post("/:id/players", authenticateAdminMiddleware, addPlayerToTournament);
+
+// Delete player (Admin only)
+router.delete(
+  "/:id/players",
+  authenticateAdminMiddleware,
+  deletePlayerFromTournament
+);
 
 // Create a new tournament (Admin only)
 router.post("/refresh/:id", authenticateAdminMiddleware, refreshTournament);
