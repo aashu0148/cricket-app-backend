@@ -43,6 +43,12 @@ router.get(
   getJoinableLeaguesOfTournament
 );
 
+router.get(
+  "/tournament/:id/joined",
+  authenticateUserMiddleware,
+  getJoinableLeaguesOfTournament
+);
+
 // Add player to wishlist
 router.post("/wishlist", authenticateUserMiddleware, addPlayerToWishlist);
 

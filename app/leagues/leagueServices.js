@@ -150,6 +150,23 @@ const getJoinedLeagues = async (req, res) => {
 };
 
 // Get league by ID
+const getJoinedLeaguesOfTournament = async (req, res) => {
+  const userId = req.user?._id;
+  const tid = req.params.id;
+
+  try {
+    const leagues = await getLeaguesBasedOnFilter({
+      "teams.owner": userId,
+      tournament: tid,
+    });
+
+    createResponse(res, leagues, 200);
+  } catch (error) {
+    createError(res, "Error fetching joined league for tournament", 500, error);
+  }
+};
+
+// Get league by ID
 const getJoinedActiveLeagues = async (req, res) => {
   const userId = req.user?._id;
   const currentDate = new Date();
@@ -393,4 +410,5 @@ export {
   getJoinedLeagues,
   getJoinedActiveLeagues,
   getJoinableLeaguesOfTournament,
+  getJoinedLeaguesOfTournament,
 };
