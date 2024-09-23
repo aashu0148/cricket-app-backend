@@ -69,6 +69,7 @@ const createLeague = async (req, res) => {
 const getLeaguesBasedOnFilter = async (filter) => {
   return await LeagueSchema.find(filter)
     .select("-password")
+    .sort({ createdAt: -1 })
     .populate(
       "tournament",
       "name season startDate endDate scoringSystem longName"
@@ -158,6 +159,7 @@ const getJoinedActiveLeagues = async (req, res) => {
       "teams.owner": userId,
     })
       .select("-password")
+      .sort({ createdAt: -1 })
       .populate({
         path: "tournament",
         select: "name season startDate endDate scoringSystem longName",

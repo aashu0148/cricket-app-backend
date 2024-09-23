@@ -23,7 +23,7 @@ const createScoringSystem = async (req, res) => {
 // Get all scoring systems
 const getAllScoringSystems = async (req, res) => {
   try {
-    const result = await ScoringSystemSchema.find();
+    const result = await ScoringSystemSchema.find().sort({ createdAt: -1 });
 
     createResponse(res, result, 200);
   } catch (error) {

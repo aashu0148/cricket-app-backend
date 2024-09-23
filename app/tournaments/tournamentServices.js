@@ -211,6 +211,7 @@ const getAllTournaments = async (req, res) => {
     }
 
     const tournaments = await TournamentSchema.find(filterObj)
+      .sort({ createdAt: -1 })
       .populate("players", "name image country fullName")
       .lean();
 
@@ -250,6 +251,7 @@ const getOngoingUpcomingTournaments = async (req, res) => {
         },
       ],
     })
+      .sort({ createdAt: -1 })
       .populate("players", "name image country fullName")
       .lean();
 
