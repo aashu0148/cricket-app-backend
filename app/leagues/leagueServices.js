@@ -68,6 +68,7 @@ const createLeague = async (req, res) => {
 
 const getLeaguesBasedOnFilter = async (filter) => {
   return await LeagueSchema.find(filter)
+    .select("-password")
     .populate(
       "tournament",
       "name season startDate endDate scoringSystem longName"
@@ -118,11 +119,14 @@ const getLeagueById = async (req, res) => {
         "name season startDate endDate scoringSystem longName"
       )
       .populate("createdBy", "-token -role")
-      .populate("teams.owner", "-token -role");
+      .populate("teams.owner", "-token -role")
+      .lean();
 
     if (!league) {
       return createError(res, "League not found", 404);
     }
+
+    if (req.user._id !== league.createdBy._id) delete league.password;
 
     createResponse(res, league, 200);
   } catch (error) {
@@ -153,6 +157,7 @@ const getJoinedActiveLeagues = async (req, res) => {
     const leagues = await LeagueSchema.find({
       "teams.owner": userId,
     })
+      .select("-password")
       .populate({
         path: "tournament",
         select: "name season startDate endDate scoringSystem longName",
@@ -250,7 +255,7 @@ const joinLeague = async (req, res) => {
     const { leagueId, password } = req.body;
     const userId = req.user._id;
 
-    const league = await LeagueSchema.findById(leagueId);
+    const league = await LeagueSchema.findById(leagueId).select("-password");
 
     if (!league) {
       return createError(res, "League not found", 404);
