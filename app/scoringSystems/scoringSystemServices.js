@@ -264,10 +264,9 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
     }
 
     // 3. Runs scored milestone bonus
-    const milestoneRule =
-      scoringSystem.batting.runMilestoneBonus.milestones.find(
-        (m) => playerMatchData.batting.runs <= m.runsUpto
-      );
+    const milestoneRule = scoringSystem.batting.runMilestoneBonus.milestones
+      .sort((a, b) => (a.runsUpto < b.runsUpto ? -1 : 1))
+      .find((m) => playerMatchData.batting.runs <= m.runsUpto);
     if (milestoneRule) {
       if (
         !scoringSystem.batting.runMilestoneBonus.negativeRunsExemptPositions.includes(
