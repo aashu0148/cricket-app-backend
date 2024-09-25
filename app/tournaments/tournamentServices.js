@@ -278,10 +278,9 @@ const getTournamentById = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const tournament = await TournamentSchema.findById(id).populate(
-      "players",
-      "-stats"
-    );
+    const tournament = await TournamentSchema.findById(id)
+      .populate("players", "-stats")
+      .lean();
     if (!tournament) {
       return createError(res, "Tournament not found", 404);
     }
@@ -291,9 +290,20 @@ const getTournamentById = async (req, res) => {
       objectId: {
         $in: matchIds,
       },
-    }).select("objectId");
+    }).select("-innings");
+
+    const allPlayerPoints = completedMatches
+      .reduce((acc, curr) => [...acc, ...curr.playerPoints], [])
+      .reduce((acc, curr) => {
+        const player = acc.find((p) => p.player === curr.player);
+        if (player) player.points += curr.points;
+        else acc.push(curr);
+
+        return acc;
+      }, []);
 
     tournament.completedMatches = completedMatches;
+    tournament.playerPoints = allPlayerPoints;
 
     createResponse(res, tournament, 200);
   } catch (err) {
