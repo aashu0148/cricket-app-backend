@@ -371,11 +371,11 @@ const removePlayerFromWishlist = async (req, res) => {
     const userId = req.user._id;
 
     // Find the league
-    const league = await LeagueSchema.findById(leagueId).lean();
+    const league = await LeagueSchema.findById(leagueId);
     if (!league) return createError(res, "League not found", 404);
 
     // Find the team belonging to the user
-    const team = league.teams.find((t) => t.owner === userId);
+    const team = league.teams.find((t) => t.owner.toString() === userId);
     if (!team) {
       return createError(res, "Your team not found in this league", 404);
     }
