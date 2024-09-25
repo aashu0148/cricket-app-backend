@@ -121,6 +121,8 @@ const getLeagueById = async (req, res) => {
       )
       .populate("createdBy", "-token -role")
       .populate("teams.owner", "-token -role")
+      .populate("teams.players", "-stats")
+      .populate("teams.wishlist", "-stats")
       .lean();
 
     if (!league) {
@@ -291,7 +293,7 @@ const joinLeague = async (req, res) => {
     if (league.draftRound.completed)
       return createError(
         res,
-        "Can nto join a league after draft round is completed"
+        "Can not join a league after draft round is completed"
       );
 
     // Check if league has space for more teams
@@ -306,6 +308,12 @@ const joinLeague = async (req, res) => {
         res,
         "Can not join a league after draft round has started or about to start"
       );
+
+    const existing = await LeagueSchema.findOne({
+      _id: leagueId,
+      "teams.owner": userId,
+    });
+    if (existing) return createError(res, "You are already in this league");
 
     // Add the user's team to the league
     league.teams.push({ owner: userId, players: [], joinedAt: new Date() });
@@ -323,11 +331,11 @@ const addPlayerToWishlist = async (req, res) => {
     const userId = req.user._id;
 
     // Find the league
-    const league = await LeagueSchema.findById(leagueId).lean();
+    const league = await LeagueSchema.findById(leagueId);
     if (!league) return createError(res, "League not found", 404);
 
     // Find the team belonging to the user
-    const team = league.teams.find((t) => t.owner === userId);
+    const team = league.teams.find((t) => t.owner.toString() === userId);
     if (!team) {
       return createError(res, "Your team not found in this league", 404);
     }
