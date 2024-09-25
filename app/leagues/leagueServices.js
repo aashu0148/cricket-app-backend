@@ -151,7 +151,7 @@ const getJoinedLeagues = async (req, res) => {
 
 // Get league by ID
 const getJoinedLeaguesOfTournament = async (req, res) => {
-  const userId = req.user?._id;
+  const userId = req.user._id;
   const tid = req.params.id;
 
   try {

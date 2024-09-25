@@ -11,6 +11,7 @@ import {
   getJoinedLeagues,
   getJoinedActiveLeagues,
   getJoinableLeaguesOfTournament,
+  getJoinedLeaguesOfTournament,
 } from "./leagueServices.js";
 import { authenticateUserMiddleware } from "#app/middleware/user.js";
 
@@ -46,7 +47,7 @@ router.get(
 router.get(
   "/tournament/:id/joined",
   authenticateUserMiddleware,
-  getJoinableLeaguesOfTournament
+  getJoinedLeaguesOfTournament
 );
 
 // Add player to wishlist
