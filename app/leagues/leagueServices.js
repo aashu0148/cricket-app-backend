@@ -201,7 +201,7 @@ const getJoinedActiveLeagues = async (req, res) => {
 // Update a league (only by owner or admin)
 const updateLeague = async (req, res) => {
   try {
-    const { name, description, draftRoundStartDate, type } = req.body;
+    const { name, description, draftRoundStartDate, type, password } = req.body;
     const league = await LeagueSchema.findById(req.params.id);
 
     if (!league) {
@@ -224,8 +224,10 @@ const updateLeague = async (req, res) => {
     // Update allowed fields only
     if (name) obj.name = name;
     if (description) obj.description = description;
-    if (draftRoundStartDate) obj.draftRound.startDate = draftRoundStartDate;
+    if (draftRoundStartDate)
+      obj.draftRound = { startDate: draftRoundStartDate };
     if (type) obj.type = type;
+    if (password) obj.password = password;
 
     const updated = await LeagueSchema.findOneAndUpdate(
       {
