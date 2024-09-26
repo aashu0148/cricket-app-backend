@@ -1,145 +1,207 @@
+import LeagueSchema from "#app/leagues/leagueSchema.js";
+import UserSchema from "#app/users/userSchema.js";
+
+import { socketEventsEnum } from "./constants.js";
+import { getRoom, updateRoom, deleteRoom, addRoom } from "./index.js";
+
 const SocketEvents = (io) => {
-  // Helper function to send notifications to a room
+  // Send a notification to the room
   const sendNotificationInRoom = (roomId, title, desc) => {
-    io.to(roomId).emit("notification", {
+    io.to(roomId).emit(socketEventsEnum.notification, {
       title: title || "",
       description: desc || "",
     });
   };
 
-  // Helper function to send errors to a specific socket
+  // Send an error message to the socket
   const sendSocketError = (socket, message) => {
-    socket.emit("error", message);
+    socket.emit(socketEventsEnum.error, message);
   };
 
-  // Function to handle leaving a room
-  const leaveRoomSocketHandler = (socket, obj) => {
-    if (!obj?.roomId || !obj?.userId) return;
+  // Remove a user from all rooms or a specific room
+  const removeUserFromRoom = (userId, leagueId, socket) => {
+    let room = null;
 
-    const { roomId, userId } = obj;
-    socket.leave(roomId); // Leave the room
-    socket.emit("left-room", { _id: roomId }); // Notify user
-    sendNotificationInRoom(roomId, `${userId} left the room`);
-    io.to(roomId).emit("users-change", {
-      _id: roomId,
-      users: getUpdatedRoomUsers(roomId),
-    });
+    try {
+      room = getRoom(leagueId);
+      if (!room) return null;
+
+      const user = room.users.find((u) => u._id === userId);
+      if (!user)
+        throw new Error(`User do not exist in room[${room.name}] to remove`);
+
+      const updatedUsers = room.users.filter((u) => u._id !== userId);
+
+      const updatedRoom = updateRoom(leagueId, { users: updatedUsers });
+
+      sendNotificationInRoom(
+        leagueId,
+        `${user.name || "undefined"} left the room`
+      );
+      socket.leave(leagueId);
+
+      return { user, room: updatedRoom };
+    } catch (error) {
+      console.error("Error in removeUserFromRooms:", error.message, error);
+      return null;
+    }
   };
 
-  // Function to handle draft pick
-  const handleDraftPick = (socket, obj) => {
-    const { roomId, userId, playerId } = obj;
-
-    if (!roomId || !userId || !playerId) {
-      sendSocketError(socket, "Missing required data for draft pick.");
-      return;
-    }
-
-    const currentTurn = getCurrentDraftTurn(roomId); // Fetch the team whose turn it is
-
-    if (currentTurn !== userId) {
-      sendSocketError(socket, "It's not your turn to pick.");
-      return;
-    }
-
-    const playerSelected = selectPlayerForTeam(roomId, userId, playerId); // Handle player selection
-    if (!playerSelected) {
-      sendSocketError(socket, "Player not available or already picked.");
-      return;
-    }
-
-    io.to(roomId).emit("draft-pick", {
-      userId,
-      playerId,
-      teamId: currentTurn.teamId,
-    });
-
-    // Notify everyone in the room about the selection
-    sendNotificationInRoom(
-      roomId,
-      "Draft Update",
-      `${userId} picked player ${playerId}`
-    );
-
-    // Move to next turn
-    moveToNextDraftTurn(roomId);
-    io.to(roomId).emit("turn-change", {
-      nextTurn: getCurrentDraftTurn(roomId),
-    });
-  };
-
-  // Main connection handler
   io.on("connection", (socket) => {
-    // Handle joining the room
-    socket.on("join-room", async (obj) => {
-      const { roomId, userId, name } = obj;
+    // Handler for joining a room
+    socket.on(socketEventsEnum.joinRoom, async (obj) => {
+      const { leagueId, userId } = obj;
 
-      if (!roomId || !userId) {
-        sendSocketError(socket, "Missing roomId or userId.");
-        return;
+      try {
+        // Validate inputs
+        if (!leagueId || !userId) {
+          sendSocketError(socket, "Missing leagueId or userId.");
+          return;
+        }
+
+        // Find the league
+        const league = await LeagueSchema.findOne({ _id: leagueId });
+        if (!league) {
+          sendSocketError(socket, "League not found!");
+          return;
+        }
+
+        // Find the user
+        const user = await UserSchema.findOne({ _id: userId }).select(
+          "-token -role"
+        );
+        if (!user) {
+          sendSocketError(socket, "User not found!");
+          return;
+        }
+
+        // Find the team belonging to the user in the league
+        const team = league.teams.find(
+          (t) => t.owner.toString() === user._id.toString()
+        );
+        if (!team) {
+          sendSocketError(socket, "Your team not found in this league", 404);
+          return;
+        }
+
+        // Check if the room exists
+        let room = getRoom(leagueId);
+        const userObject = {
+          _id: userId,
+          name: user.name,
+          email: user.email,
+          profileImage: user.profileImage || "",
+          heartbeat: Date.now(),
+        };
+
+        let updatedRoom;
+        // If room exists, add the user
+        if (room) {
+          room.users = [...room.users, userObject];
+
+          updatedRoom = updateRoom(leagueId, room);
+        } else {
+          // If room doesn't exist, create a new one
+          room = {
+            name: league.name,
+            leagueId: leagueId,
+            users: [userObject],
+            chats: [],
+          };
+          addRoom(room);
+
+          updatedRoom = room;
+        }
+
+        // Join the user to the socket room
+        socket.join(leagueId);
+        socket.emit(socketEventsEnum.joinedRoom, {
+          ...updatedRoom,
+          _id: leagueId,
+        });
+        sendNotificationInRoom(leagueId, `${user.name} joined the room`);
+
+        // Notify all clients about the users' change
+        io.to(leagueId).emit(socketEventsEnum.usersChange, {
+          users: updatedRoom.users || [],
+          _id: leagueId,
+        });
+      } catch (error) {
+        console.error("Error in join-room:", error.message, error);
       }
-
-      // Remove user from previous rooms, if any
-      removeUserFromRooms(userId, null, socket);
-
-      // Join the new room
-      socket.join(roomId);
-
-      const updatedRoom = getUpdatedRoom(roomId);
-
-      socket.emit("joined-room", { ...updatedRoom, _id: roomId });
-      sendNotificationInRoom(roomId, `${name} joined the room`);
-
-      // Notify everyone about the updated users
-      io.to(roomId).emit("users-change", {
-        users: updatedRoom.users || [],
-        _id: roomId,
-      });
     });
 
-    // Handle leaving the room
-    socket.on("leave-room", (obj) => leaveRoomSocketHandler(socket, obj));
+    // Handler for leaving a room
+    socket.on(socketEventsEnum.leaveRoom, (obj) => {
+      const { leagueId, userId } = obj;
+      try {
+        if (!leagueId || !userId) return;
 
-    // Handle draft pick during the draft round
-    socket.on("draft-pick", (obj) => handleDraftPick(socket, obj));
+        const updatedRoom = removeUserFromRoom(userId, leagueId, socket);
+        socket.emit(socketEventsEnum.leftRoom, { _id: leagueId });
+
+        // If room is empty, delete the room
+        if (!updatedRoom?.room?.users?.length) {
+          deleteRoom(leagueId);
+        }
+      } catch (error) {
+        console.error("Error in leave-room:", error.message, error);
+      }
+    });
+
+    // Handler for sending a chat message
+    socket.on(socketEventsEnum.chat, async (obj) => {
+      const { leagueId, userId, message, timestamp } = obj;
+
+      try {
+        // Validate input
+        if (!leagueId || !userId || !message) {
+          sendSocketError(socket, "Missing required parameters.");
+          return;
+        }
+
+        const room = getRoom(leagueId);
+        if (!room) {
+          sendSocketError(socket, "Room not found.");
+          return;
+        }
+
+        const user = room.users.find((u) => u._id === userId);
+        if (!user) {
+          sendSocketError(socket, "User not found in the room.");
+          return;
+        }
+
+        // Validate message
+        if (!message.trim()) {
+          sendSocketError(socket, "Message cannot be empty.");
+          return;
+        }
+
+        // Create chat object
+        const chat = {
+          user: {
+            _id: userId,
+            name: user.name,
+            profileImage: user.profileImage || "",
+          },
+          message,
+          timestamp: timestamp || Date.now(),
+        };
+
+        // Update room chats
+        const updatedChats = [...room.chats, chat];
+        updateRoom(leagueId, { chats: updatedChats });
+
+        // Emit the chat message to everyone in the room
+        io.to(leagueId).emit(socketEventsEnum.chat, {
+          chats: updatedChats,
+        });
+      } catch (error) {
+        console.error("Error in chat:", error.message, error);
+      }
+    });
   });
-};
-
-// Helper functions (these would interact with your backend/database)
-const getUpdatedRoom = (roomId) => {
-  // Fetch room details including users
-  return {
-    _id: roomId,
-    users: getUpdatedRoomUsers(roomId),
-  };
-};
-
-const getUpdatedRoomUsers = (roomId) => {
-  // Fetch and return the list of users in the room
-  // This should query your database for the room's user list
-  return []; // Example: return the array of users
-};
-
-const getCurrentDraftTurn = (roomId) => {
-  // Logic to return the team/user whose turn it is to pick
-  // Example: return the user ID or team ID
-  return "someUserId";
-};
-
-const selectPlayerForTeam = (roomId, userId, playerId) => {
-  // Logic to assign a player to a user's team during draft
-  // Example: check if the player is available and assign to the team
-  return true; // Return true if successful, false otherwise
-};
-
-const moveToNextDraftTurn = (roomId) => {
-  // Logic to advance the draft to the next user's turn
-  // Example: update the draft round data to move to the next user
-};
-
-const removeUserFromRooms = (userId, currentRoomId, socket) => {
-  // Logic to remove a user from all rooms they are currently in
-  // Example: iterate over rooms and remove the user
 };
 
 export default SocketEvents;
