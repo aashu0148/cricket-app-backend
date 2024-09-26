@@ -1,44 +1,75 @@
 import SocketEvents from "./events.js";
 
+import { isValidRoom } from "./util.js";
 import { socketEventsEnum } from "./constants.js";
 
 // In-memory room storage
 const rooms = [];
+// room structure:
+// {
+//   name: string, // Name of the league or room
+//   leagueId: string, // Unique ID for the league/room
+//   users: [
+//     // List of users who have joined the room
+//     {
+//       _id: string, // User ID
+//       name: string, // User name
+//       heartbeat: number, // Timestamp of the user's last activity
+//     },
+//   ],
+//   chats: [
+//     {
+//       user: {
+//         _id: string, // User ID of the person who sent the message
+//         name: string, // Name of the user who sent the message
+//         profileImage: string, // Profile image of the user (optional)
+//       },
+//       message: string, // The actual chat message
+//       timestamp: number, // Timestamp of when the message was sent
+//     },
+//   ],
+//  playersPool : [
+//      {
+//        _id: string,
+//        name: string,
+//        slug:string,
+//      }
+//   ],
+//  turnTimer:Number,  // turn timer id, used in clearTimeout later
+// };
 
 function getAllRooms() {
   return rooms;
 }
 
-// Utility function to validate user objects
-const isValidUser = (user) => {
-  return typeof user.name === "string" && typeof user._id === "string";
-};
-
-// Utility function to validate chat objects
-const isValidChat = (chat) => {
-  return (
-    isValidUser(chat.user) &&
-    typeof chat.message === "string" &&
-    typeof chat.timestamp === "string"
-  );
-};
-
-// Utility function to validate room objects
-const isValidRoom = (room) => {
-  return (
-    typeof room.name === "string" &&
-    typeof room.leagueId === "string" &&
-    Array.isArray(room.users) &&
-    room.users.every(isValidUser) &&
-    Array.isArray(room.chats) &&
-    room.chats.every(isValidChat)
-  );
-};
-
 /**
- * Retrieves a room by its leagueId.
- * @param {String} leagueId - The unique ID of the room.
- * @returns {Object|null} - The room object if found; otherwise, null.
+ * Retrieves the room associated with the provided league ID.
+ *
+ * @param {string} leagueId - The unique ID of the league to retrieve the room for.
+ * @returns {{
+ *   name: string,
+ *   leagueId: string,
+ *   users: Array<{
+ *     _id: string,
+ *     name: string,
+ *     heartbeat: number
+ *   }>,
+ *   chats: Array<{
+ *     user: {
+ *       _id: string,
+ *       name: string,
+ *       profileImage: string
+ *     },
+ *     message: string,
+ *     timestamp: number
+ *   }>,
+ *   playersPool: Array<{
+ *     _id: string,
+ *     name: string,
+ *     slug: string
+ *   }>,
+ *   turnTimer: number
+ * }}
  */
 const getRoom = (leagueId) => {
   if (typeof leagueId !== "string") {

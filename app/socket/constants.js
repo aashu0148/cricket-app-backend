@@ -7,6 +7,8 @@ const socketEventsEnum = {
   joinRoom: "join-room",
   chat: "chat",
   usersChange: "users-change",
+  draftRoundCompleted: "draft-round-completed",
+  pickPlayer: "pick-player",
 };
 
 export { socketEventsEnum };
