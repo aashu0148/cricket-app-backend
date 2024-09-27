@@ -8,11 +8,7 @@ const isValidPlayer = (player) =>
 
 // Utility function to validate chat objects
 const isValidChat = (chat) => {
-  return (
-    isValidUser(chat.user) &&
-    typeof chat.message === "string" &&
-    typeof chat.timestamp === "string"
-  );
+  return isValidUser(chat.user) && typeof chat.message === "string";
 };
 
 // Utility function to validate room objects

@@ -400,9 +400,7 @@ const SocketEvents = (io) => {
         updateRoom(leagueId, { chats: updatedChats });
 
         // Emit the chat message to everyone in the room
-        io.to(leagueId).emit(socketEventsEnum.chat, {
-          chats: updatedChats,
-        });
+        io.to(leagueId).emit(socketEventsEnum.chat, chat);
       } catch (error) {
         console.error("Error in chat:", error.message, error);
       }
