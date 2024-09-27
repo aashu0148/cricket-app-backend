@@ -360,11 +360,11 @@ const SocketEvents = (io) => {
       }
     });
 
-    socket.on(socketEventsEnum.heartbeat, async (obj) => {
-      const { leagueId, userId } = obj;
-      if (!leagueId || !userId) return;
-
+    socket.on(socketEventsEnum.heartbeat, async (obj = {}) => {
       try {
+        const { leagueId, userId } = obj;
+        if (!leagueId || !userId) return;
+
         const room = getRoom(leagueId);
         if (!room) return;
 
