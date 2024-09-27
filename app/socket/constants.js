@@ -1,5 +1,6 @@
 const socketEventsEnum = {
   heartbeat: "heartbeat",
+  getRoom: "get-room",
   error: "error",
   notification: "notification",
   joinedRoom: "joined-room",

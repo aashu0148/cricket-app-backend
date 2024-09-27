@@ -294,6 +294,7 @@ const SocketEvents = (io) => {
         // Join the user to the socket room
         socket.join(leagueId);
         socket.emit(socketEventsEnum.joinedRoom, {
+          leagueId,
           name: room.name,
           chats: room.chats,
           users: room.users,
@@ -327,6 +328,29 @@ const SocketEvents = (io) => {
         if (updatedRoom && !updatedRoom?.room?.users?.length) {
           deleteRoom(leagueId);
         }
+      } catch (error) {
+        console.error("Error in leave-room:", error.message, error);
+      }
+    });
+
+    socket.on(socketEventsEnum.getRoom, (obj = {}) => {
+      try {
+        const { leagueId, userId } = obj;
+        if (!leagueId || !userId) return;
+
+        const room = getRoom(leagueId);
+        if (!room) {
+          sendSocketError(socket, "Room not found.");
+          return;
+        }
+
+        const user = room.users.find((u) => u._id === userId);
+        if (!user) {
+          sendSocketError(socket, "User not found in the room.");
+          return;
+        }
+
+        socket.emit(socketEventsEnum.getRoom, room);
       } catch (error) {
         console.error("Error in leave-room:", error.message, error);
       }
