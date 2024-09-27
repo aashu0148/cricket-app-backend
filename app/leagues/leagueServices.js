@@ -220,14 +220,20 @@ const updateLeague = async (req, res) => {
       );
     }
 
+    const doAnyTeamMemberHavePlayers = league.teams.some(
+      (t) => t.players.length > 0
+    );
+
     const obj = {};
     // Update allowed fields only
     if (name) obj.name = name;
     if (description) obj.description = description;
-    if (draftRoundStartDate)
-      obj.draftRound = { startDate: draftRoundStartDate };
     if (type) obj.type = type;
     if (password) obj.password = password;
+
+    // only update it if draft round has not started (no one has selected a player)
+    if (draftRoundStartDate && !doAnyTeamMemberHavePlayers)
+      obj.draftRound = { ...league.draftRound, startDate: draftRoundStartDate };
 
     const updated = await LeagueSchema.findOneAndUpdate(
       {
