@@ -249,40 +249,46 @@ const SocketEvents = (io) => {
         }
 
         let room = getRoom(leagueId);
-        if (room && room.users.some((e) => e._id === userId))
-          return sendSocketError(socket, "User already in the room");
+        const userAlreadyExist =
+          room && room.users.some((e) => e._id === userId);
 
-        const userObject = {
-          _id: userId,
-          name: user.name,
-          email: user.email,
-          profileImage: user.profileImage || "",
-          heartbeat: Date.now(),
-        };
         let updatedRoom;
-        // If room exists, add the user
-        if (room) {
-          room.users = [...room.users, userObject];
-
-          updatedRoom = updateRoom(leagueId, room);
-        } else {
-          // If room doesn't exist, create a new one
-          const { players } = await TournamentSchema.findOne({
-            _id: league.tournament,
-          })
-            .populate("players", "name slug")
-            .lean();
-
-          room = {
-            name: league.name,
-            leagueId: leagueId,
-            users: [userObject],
-            chats: [],
-            playersPool: players.map((e) => ({ ...e, _id: e._id.toString() })),
+        if (!userAlreadyExist) {
+          const userObject = {
+            _id: userId,
+            name: user.name,
+            email: user.email,
+            profileImage: user.profileImage || "",
+            heartbeat: Date.now(),
           };
-          addRoom(room);
 
-          updatedRoom = room;
+          // If room exists, add the user
+          if (room) {
+            room.users = [...room.users, userObject];
+
+            updatedRoom = updateRoom(leagueId, room);
+          } else {
+            // If room doesn't exist, create a new one
+            const { players } = await TournamentSchema.findOne({
+              _id: league.tournament,
+            })
+              .populate("players", "name slug")
+              .lean();
+
+            room = {
+              name: league.name,
+              leagueId: leagueId,
+              users: [userObject],
+              chats: [],
+              playersPool: players.map((e) => ({
+                ...e,
+                _id: e._id.toString(),
+              })),
+            };
+            addRoom(room);
+
+            updatedRoom = room;
+          }
         }
 
         // Join the user to the socket room
@@ -295,11 +301,12 @@ const SocketEvents = (io) => {
         });
         sendNotificationInRoom(leagueId, `${user.name} joined the room`);
 
-        checkAndStartDraftRound(socket, leagueId, updatedRoom);
+        if (!userAlreadyExist)
+          checkAndStartDraftRound(socket, leagueId, updatedRoom);
 
         // Notify all clients about the users' change
         io.to(leagueId).emit(socketEventsEnum.usersChange, {
-          users: updatedRoom.users || [],
+          users: userAlreadyExist ? room.users : updatedRoom?.users || [],
           _id: leagueId,
         });
       } catch (error) {
