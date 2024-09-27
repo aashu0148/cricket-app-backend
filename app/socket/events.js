@@ -196,10 +196,9 @@ const SocketEvents = (io) => {
 
   io.on("connection", (socket) => {
     // Handler for joining a room
-    socket.on(socketEventsEnum.joinRoom, async (obj) => {
-      const { leagueId, userId } = obj;
-
+    socket.on(socketEventsEnum.joinRoom, async (obj = {}) => {
       try {
+        const { leagueId, userId } = obj;
         // Validate inputs
         if (!leagueId || !userId) {
           sendSocketError(socket, "Missing leagueId or userId.");
