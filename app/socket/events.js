@@ -360,6 +360,27 @@ const SocketEvents = (io) => {
       }
     });
 
+    socket.on(socketEventsEnum.heartbeat, async (obj) => {
+      const { leagueId, userId } = obj;
+      if (!leagueId || !userId) return;
+
+      try {
+        const room = getRoom(leagueId);
+        if (!room) return;
+
+        const userIndex = room.users.findIndex((u) => u._id === userId);
+        if (userIndex < 0) return;
+
+        updateRoom(leagueId, {
+          users: room.users.map((u) =>
+            u._id === userId ? { ...u, heartbeat: Date.now() } : u
+          ),
+        });
+      } catch (error) {
+        console.error("Error in heartbeat:", error?.message, error);
+      }
+    });
+
     socket.on(socketEventsEnum.pickPlayer, async (obj) => {
       const { leagueId, userId, pickedPlayerId } = obj;
       if (!leagueId || !userId || !pickedPlayerId)
