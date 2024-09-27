@@ -205,6 +205,8 @@ const SocketEvents = (io) => {
           return;
         }
 
+        console.log("join room request received ");
+
         // Find the league
         const league = await LeagueSchema.findOne({ _id: leagueId });
         if (!league) {
@@ -255,13 +257,16 @@ const SocketEvents = (io) => {
           // If room doesn't exist, create a new one
           const { players } = await TournamentSchema.findOne({
             _id: league.tournament,
-          }).populate("players", "name slug");
+          })
+            .populate("players", "name slug")
+            .lean();
+
           room = {
             name: league.name,
             leagueId: leagueId,
             users: [userObject],
             chats: [],
-            playersPool: players,
+            playersPool: players.map((e) => ({ ...e, _id: e._id.toString() })),
           };
           addRoom(room);
 
@@ -289,9 +294,9 @@ const SocketEvents = (io) => {
     });
 
     // Handler for leaving a room
-    socket.on(socketEventsEnum.leaveRoom, (obj) => {
-      const { leagueId, userId } = obj;
+    socket.on(socketEventsEnum.leaveRoom, (obj = {}) => {
       try {
+        const { leagueId, userId } = obj;
         if (!leagueId || !userId) return;
 
         const updatedRoom = removeUserFromRoom(userId, leagueId, socket);
@@ -307,10 +312,9 @@ const SocketEvents = (io) => {
     });
 
     // Handler for sending a chat message
-    socket.on(socketEventsEnum.chat, async (obj) => {
-      const { leagueId, userId, message, timestamp } = obj;
-
+    socket.on(socketEventsEnum.chat, async (obj = {}) => {
       try {
+        const { leagueId, userId, message, timestamp } = obj;
         // Validate input
         if (!leagueId || !userId || !message) {
           sendSocketError(socket, "Missing required parameters.");
@@ -380,7 +384,7 @@ const SocketEvents = (io) => {
       }
     });
 
-    socket.on(socketEventsEnum.pickPlayer, async (obj) => {
+    socket.on(socketEventsEnum.pickPlayer, async (obj = {}) => {
       const { leagueId, userId, pickedPlayerId } = obj;
       if (!leagueId || !userId || !pickedPlayerId)
         return sendSocketError(socket, "Missing required parameters");

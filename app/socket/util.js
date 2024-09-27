@@ -4,7 +4,7 @@ const isValidUser = (user) => {
 };
 
 const isValidPlayer = (player) =>
-  typeof player._id === "string" && player.name === "string";
+  typeof player._id === "string" && typeof player.name === "string";
 
 // Utility function to validate chat objects
 const isValidChat = (chat) => {
@@ -21,7 +21,7 @@ const isValidRoom = (room) => {
     typeof room.name === "string" &&
     typeof room.leagueId === "string" &&
     Array.isArray(room.playersPool) &&
-    room.players.every(isValidPlayer) &&
+    room.playersPool.every(isValidPlayer) &&
     Array.isArray(room.users) &&
     room.users.every(isValidUser) &&
     Array.isArray(room.chats) &&
