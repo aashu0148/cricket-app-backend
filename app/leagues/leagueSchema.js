@@ -63,8 +63,8 @@ const leagueSchema = new mongoose.Schema(
 
     // Draft rounds details
     draftRound: {
-      completed: Boolean,
-      paused: Boolean,
+      completed: { type: Boolean, default: false },
+      paused: { type: Boolean, default: false },
       startDate: { type: Date, required: true },
       currentTurn: {
         type: mongoose.Schema.Types.ObjectId,
