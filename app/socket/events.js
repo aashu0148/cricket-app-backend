@@ -248,8 +248,10 @@ const SocketEvents = (io) => {
           return;
         }
 
-        // Check if the room exists
         let room = getRoom(leagueId);
+        if (room && room.users.some((e) => e._id === userId))
+          return sendSocketError(socket, "User already in the room");
+
         const userObject = {
           _id: userId,
           name: user.name,
@@ -257,7 +259,6 @@ const SocketEvents = (io) => {
           profileImage: user.profileImage || "",
           heartbeat: Date.now(),
         };
-
         let updatedRoom;
         // If room exists, add the user
         if (room) {
@@ -316,7 +317,7 @@ const SocketEvents = (io) => {
         socket.emit(socketEventsEnum.leftRoom, { _id: leagueId });
 
         // If room is empty, delete the room
-        if (!updatedRoom?.room?.users?.length) {
+        if (updatedRoom && !updatedRoom?.room?.users?.length) {
           deleteRoom(leagueId);
         }
       } catch (error) {
