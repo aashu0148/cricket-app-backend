@@ -35,7 +35,7 @@ const isPickedPlayerValid = (playerId, playersPool, leagueTeams) => {
 
   // Check if the player has already been picked by any team
   const isAlreadyPicked = leagueTeams.some((team) =>
-    team.players.includes(playerId)
+    team.players.some((e) => e && e._id.toString() === playerId)
   );
 
   // The player is valid only if they are in the pool and not already picked

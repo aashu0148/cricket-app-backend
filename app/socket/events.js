@@ -6,6 +6,8 @@ import { getRoom, updateRoom, deleteRoom, addRoom } from "./index.js";
 import { socketEventsEnum } from "./constants.js";
 import TournamentSchema from "#app/tournaments/tournamentSchema.js";
 
+const roomTimeouts = {};
+
 const SocketEvents = (io) => {
   // Send a notification to the room
   const sendNotificationInRoom = (roomId, title, desc) => {
@@ -69,19 +71,20 @@ const SocketEvents = (io) => {
 
       // Get the index of the current turn user
       const currentTurnIndex = league.teams.findIndex(
-        (t) => t.owner._id === league.draftRound.currentTurn
+        (t) =>
+          t.owner._id.toString() === league.draftRound.currentTurn.toString()
       );
 
       // Move to the next user in the list
       const nextUserIndex = (currentTurnIndex + 1) % league.teams.length;
-      const nextTurnUser = league.teams[nextUserIndex].owner._id;
+      const nextTurnUser = league.teams[nextUserIndex].owner._id.toString();
 
       // Update the current turn
       league.draftRound.currentTurn = nextTurnUser;
       await league.save();
 
       const newTurnUser = league.teams.find(
-        (t) => t.owner._id === newTurnUser
+        (t) => t.owner._id.toString() === nextTurnUser
       ).owner;
 
       // Notify the room about the next turn
@@ -104,56 +107,64 @@ const SocketEvents = (io) => {
           "teams.owner",
           "name"
         );
-
-        const team = league.teams.find((t) => t.owner._id === currentTurnUser);
+        const team = league.teams.find(
+          (t) => t.owner._id.toString() === currentTurnUser
+        );
         const playerPool = room.playersPool;
 
-        let pickedPlayer = null;
+        let pickedPlayerId = null;
         // Try to pick from the wishlist first
         if (team.wishlist && team.wishlist.length > 0) {
           const validPlayer = team.wishlist.find((p) =>
-            isPickedPlayerValid(p, playerPool, league.teams)
+            isPickedPlayerValid(p.toString(), playerPool, league.teams)
           );
 
           if (validPlayer) {
-            pickedPlayer = validPlayer;
+            pickedPlayerId = validPlayer.toString();
           }
         }
 
         // If no valid player in wishlist, pick a random player from the pool
-        if (!pickedPlayer) {
+        if (!pickedPlayerId) {
           for (let i = 0; i < playerPool.length; ++i) {
-            if (isPickedPlayerValid(playerPool[i], playerPool, league.teams)) {
-              pickedPlayer = playerPool[i];
+            const isValid = isPickedPlayerValid(
+              playerPool[i]._id,
+              playerPool,
+              league.teams
+            );
+            if (isValid) {
+              pickedPlayerId = playerPool[i]._id;
               break; // break from the loop
             }
           }
         }
 
-        // Assign the picked player to the user's team
-        team.players.push(pickedPlayer);
-        await league.save();
+        if (pickedPlayerId) {
+          // Assign the picked player to the user's team
+          team.players.push(pickedPlayerId);
+          await league.save();
+        }
 
         // Notify the room about the auto-picked player
         sendNotificationInRoom(
           leagueId,
           `${team.owner.name} missed their turn, auto-picked ${
-            playerPool.find((p) => p._id === pickedPlayer).slug
+            playerPool.find((p) => p._id === pickedPlayerId)?.slug
           }.`
         );
 
         // Move to the next turn
-        goToNextTurn(io, leagueId, league, room);
+        goToNextTurn(leagueId, room);
       } catch (err) {
         console.error("Error assigning a player automatically:", err);
         return false;
       }
     }, turnSeconds * 1000);
 
-    updateRoom(leagueId, { turnTimer: timer });
+    roomTimeouts[leagueId] = timer;
   };
 
-  const checkAndStartDraftRound = async (leagueId, room = {}) => {
+  const checkAndStartDraftRound = async (socket, leagueId, room = {}) => {
     try {
       const league = await LeagueSchema.findOne({ _id: leagueId });
 
@@ -175,7 +186,9 @@ const SocketEvents = (io) => {
       sendNotificationInRoom(leagueId, "Draft round is starting!");
 
       // Set the first turn
-      let currentTurnUser = league.draftRound.currentTurn || room.users[0]._id;
+      let currentTurnUser = league.draftRound.currentTurn
+        ? league.draftRound.currentTurn.toString()
+        : room.users[0]._id;
       league.draftRound.currentTurn = currentTurnUser;
       await league.save();
 
@@ -204,8 +217,6 @@ const SocketEvents = (io) => {
           sendSocketError(socket, "Missing leagueId or userId.");
           return;
         }
-
-        console.log("join room request received ");
 
         // Find the league
         const league = await LeagueSchema.findOne({ _id: leagueId });
@@ -276,12 +287,14 @@ const SocketEvents = (io) => {
         // Join the user to the socket room
         socket.join(leagueId);
         socket.emit(socketEventsEnum.joinedRoom, {
-          ...updatedRoom,
+          name: room.name,
+          chats: room.chats,
+          users: room.users,
           _id: leagueId,
         });
         sendNotificationInRoom(leagueId, `${user.name} joined the room`);
 
-        checkAndStartDraftRound(leagueId, updatedRoom);
+        checkAndStartDraftRound(socket, leagueId, updatedRoom);
 
         // Notify all clients about the users' change
         io.to(leagueId).emit(socketEventsEnum.usersChange, {
@@ -394,7 +407,9 @@ const SocketEvents = (io) => {
           "owner",
           "name"
         );
-        const team = league.teams.find((t) => t.owner._id === userId);
+        const team = league.teams.find(
+          (t) => t.owner._id.toString() === userId
+        );
 
         // Check if it's their turn
         if (league.draftRound.currentTurn !== userId) {
@@ -435,7 +450,9 @@ const SocketEvents = (io) => {
         );
 
         // Clear the timer and move to the next turn
-        clearTimeout(room.turnTimer);
+        clearTimeout(roomTimeouts[leagueId]);
+        if (roomTimeouts.leagueId) roomTimeouts[leagueId] = null;
+
         goToNextTurn(leagueId, room);
       } catch (error) {
         console.error("Error picking player:", error.message);

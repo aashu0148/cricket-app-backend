@@ -34,8 +34,7 @@ const rooms = [];
 //        name: string,
 //        slug:string,
 //      }
-//   ],
-//  turnTimer:Number,  // turn timer id, used in clearTimeout later
+//   ]
 // };
 
 function getAllRooms() {
@@ -67,8 +66,7 @@ function getAllRooms() {
  *     _id: string,
  *     name: string,
  *     slug: string
- *   }>,
- *   turnTimer: number
+ *   }>
  * }}
  */
 const getRoom = (leagueId) => {
