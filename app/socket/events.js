@@ -183,7 +183,7 @@ const SocketEvents = (io) => {
         room.users?.length / league.teams.length < 0.6 ||
         Date.now() < new Date(league.draftRound.startDate).getTime()
       )
-      //   return false; // can not start yet
+        return false; // can not start yet
 
       // Notify users the draft round is starting
       sendNotificationInRoom(leagueId, "Draft round is starting!");
