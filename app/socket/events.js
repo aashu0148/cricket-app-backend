@@ -99,7 +99,7 @@ const SocketEvents = (io) => {
   };
 
   const startTurnTimer = (leagueId, currentTurnUser, room) => {
-    const turnSeconds = 5;
+    const turnSeconds = 120;
 
     const timer = setTimeout(async () => {
       try {
