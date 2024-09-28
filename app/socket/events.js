@@ -179,10 +179,10 @@ const SocketEvents = (io) => {
         return false;
       }
 
-      // if (
-      //   room.users?.length / league.teams.length < 0.6 ||
-      //   Date.now() < new Date(league.draftRound.startDate).getTime()
-      // )
+      if (
+        room.users?.length / league.teams.length < 0.6 ||
+        Date.now() < new Date(league.draftRound.startDate).getTime()
+      )
       //   return false; // can not start yet
 
       // Notify users the draft round is starting
