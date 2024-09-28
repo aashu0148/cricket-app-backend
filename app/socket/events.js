@@ -99,7 +99,7 @@ const SocketEvents = (io) => {
   };
 
   const startTurnTimer = (leagueId, currentTurnUser, room) => {
-    const turnSeconds = 120;
+    const turnSeconds = 5;
 
     const timer = setTimeout(async () => {
       try {
@@ -166,7 +166,10 @@ const SocketEvents = (io) => {
 
   const checkAndStartDraftRound = async (socket, leagueId, room = {}) => {
     try {
-      const league = await LeagueSchema.findOne({ _id: leagueId });
+      const league = await LeagueSchema.findOne({ _id: leagueId }).populate(
+        "teams.owner",
+        "name"
+      );
 
       if (league.draftRound.paused) {
         sendSocketError(
@@ -176,11 +179,11 @@ const SocketEvents = (io) => {
         return false;
       }
 
-      if (
-        room.users?.length < league.teams.length / 2 ||
-        Date.now() < new Date(league.draftRound.startDate).getTime()
-      )
-        return false; // can not start yet
+      // if (
+      //   room.users?.length / league.teams.length < 0.6 ||
+      //   Date.now() < new Date(league.draftRound.startDate).getTime()
+      // )
+      //   return false; // can not start yet
 
       // Notify users the draft round is starting
       sendNotificationInRoom(leagueId, "Draft round is starting!");
@@ -192,13 +195,12 @@ const SocketEvents = (io) => {
       league.draftRound.currentTurn = currentTurnUser;
       await league.save();
 
+      const newTurnUser = league.teams.find(
+        (t) => t.owner._id.toString() === currentTurnUser
+      )?.owner;
+
       // Notify the room about whose turn it is
-      sendNotificationInRoom(
-        leagueId,
-        `It's ${
-          room.users.find((u) => u._id === currentTurnUser)?.name
-        }'s turn!`
-      );
+      sendNotificationInRoom(leagueId, `It's ${newTurnUser?.name}'s turn!`);
 
       // Start the first turn timer
       startTurnTimer(leagueId, currentTurnUser, room);
