@@ -326,6 +326,11 @@ const SocketEvents = (io) => {
         const updatedRoom = removeUserFromRoom(userId, leagueId, socket);
         socket.emit(socketEventsEnum.leftRoom, { _id: leagueId });
 
+        if (updatedRoom?.room)
+          io.to(leagueId).emit(socketEventsEnum.usersChange, {
+            users: updatedRoom.room?.users,
+          });
+
         // If room is empty, delete the room
         if (updatedRoom && !updatedRoom?.room?.users?.length) {
           deleteRoom(leagueId);
