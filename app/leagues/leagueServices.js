@@ -209,7 +209,7 @@ const updateLeague = async (req, res) => {
     }
 
     // Check if the user is the owner or an admin
-    const isOwner = league.createdBy === req.user._id;
+    const isOwner = league.createdBy.toString() === req.user._id;
     const isAdmin = req.user.role === userRoleEnum.ADMIN;
 
     if (!isOwner && !isAdmin) {
