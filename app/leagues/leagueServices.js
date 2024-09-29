@@ -129,7 +129,8 @@ const getLeagueById = async (req, res) => {
       return createError(res, "League not found", 404);
     }
 
-    if (req.user._id !== league.createdBy._id) delete league.password;
+    if (req.user._id !== league.createdBy._id.toString())
+      delete league.password;
 
     createResponse(res, league, 200);
   } catch (error) {
