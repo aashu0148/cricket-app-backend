@@ -284,7 +284,7 @@ const joinLeague = async (req, res) => {
     const { leagueId, password } = req.body;
     const userId = req.user._id;
 
-    const league = await LeagueSchema.findById(leagueId).select("-password");
+    const league = await LeagueSchema.findById(leagueId);
 
     if (!league) {
       return createError(res, "League not found", 404);

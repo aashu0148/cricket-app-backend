@@ -8,6 +8,12 @@ import TournamentSchema from "#app/tournaments/tournamentSchema.js";
 
 const roomTimeouts = {};
 
+function clearRoomTimeout(leagueId = "") {
+  clearTimeout(roomTimeouts[leagueId]);
+
+  if (roomTimeouts[leagueId]) roomTimeouts[leagueId] = null;
+}
+
 const SocketEvents = (io) => {
   // Send a notification to the room
   const sendNotificationInRoom = (roomId, title, desc) => {
@@ -51,6 +57,45 @@ const SocketEvents = (io) => {
     }
   };
 
+  const sendDraftRoundStatusAndUpdateRoom = (
+    leagueId,
+    isStarted,
+    status = "",
+    isCompleted = false
+  ) => {
+    const room = getRoom(leagueId);
+
+    if (!status) status = room.draftRoundStatus;
+
+    updateRoom(leagueId, {
+      draftRoundStatus: status,
+      draftRoundStarted: isStarted,
+    });
+
+    io.to(leagueId).emit(socketEventsEnum.roundStatusUpdate, {
+      isStarted,
+      status,
+      isCompleted,
+    });
+  };
+
+  const sendDraftRoundTurnUpdate = (leagueId, turnUserId = "") => {
+    io.to(leagueId).emit(socketEventsEnum.turnUpdate, {
+      userId: turnUserId,
+    });
+  };
+
+  const sendPlayerPickedUpdate = (
+    leagueId,
+    pickedPlayerId = "",
+    pickedById = ""
+  ) => {
+    io.to(leagueId).emit(socketEventsEnum.picked, {
+      pickedById,
+      pickedPlayerId,
+    });
+  };
+
   const goToNextTurn = async (leagueId, room) => {
     const maxPlayersAllowed = 15;
 
@@ -65,6 +110,7 @@ const SocketEvents = (io) => {
         league.draftRound.completed = true;
         await league.save();
         io.to(leagueId).emit(socketEventsEnum.draftRoundCompleted);
+        sendDraftRoundStatusAndUpdateRoom(leagueId, false, "completed", true);
 
         return false;
       }
@@ -89,6 +135,7 @@ const SocketEvents = (io) => {
 
       // Notify the room about the next turn
       sendNotificationInRoom(leagueId, `It's ${newTurnUser.name}'s turn!`);
+      sendDraftRoundTurnUpdate(leagueId, nextTurnUser);
 
       // Start the next turn timer
       startTurnTimer(leagueId, nextTurnUser, room);
@@ -107,6 +154,9 @@ const SocketEvents = (io) => {
           "teams.owner",
           "name"
         );
+
+        if (league.draftRound.paused) return; // draft round is paused
+
         const team = league.teams.find(
           (t) => t.owner._id.toString() === currentTurnUser
         );
@@ -143,6 +193,7 @@ const SocketEvents = (io) => {
           // Assign the picked player to the user's team
           team.players.push(pickedPlayerId);
           await league.save();
+          sendPlayerPickedUpdate(leagueId, pickedPlayerId, team.owner._id);
         }
 
         // Notify the room about the auto-picked player
@@ -164,7 +215,7 @@ const SocketEvents = (io) => {
     roomTimeouts[leagueId] = timer;
   };
 
-  const checkAndStartDraftRound = async (socket, leagueId, room = {}) => {
+  const checkAndStartDraftRound = async (socket, leagueId) => {
     try {
       const league = await LeagueSchema.findOne({ _id: leagueId }).populate(
         "teams.owner",
@@ -176,17 +227,26 @@ const SocketEvents = (io) => {
           socket,
           "Draft round paused right now, ask owner to resume it"
         );
-        return false;
+        return sendDraftRoundStatusAndUpdateRoom(leagueId, false, "paused");
       }
+
+      let room = getRoom(leagueId);
 
       if (
         room.users?.length / league.teams.length < 0.6 ||
         Date.now() < new Date(league.draftRound.startDate).getTime()
       )
-        return false; // can not start yet
+        return sendDraftRoundStatusAndUpdateRoom(
+          leagueId,
+          false,
+          "waiting for members"
+        ); // can not start yet
+
+      if (room.draftRoundStarted) return; // draft round already started, VERY IMPORTANT TO RETURN HERE BECAUSE EVEN JOINING USER WILL COME TILL THIS LINE
 
       // Notify users the draft round is starting
       sendNotificationInRoom(leagueId, "Draft round is starting!");
+      sendDraftRoundStatusAndUpdateRoom(leagueId, true, "started");
 
       // Set the first turn
       let currentTurnUser = league.draftRound.currentTurn
@@ -201,11 +261,12 @@ const SocketEvents = (io) => {
 
       // Notify the room about whose turn it is
       sendNotificationInRoom(leagueId, `It's ${newTurnUser?.name}'s turn!`);
+      sendDraftRoundTurnUpdate(leagueId, currentTurnUser);
 
       // Start the first turn timer
       startTurnTimer(leagueId, currentTurnUser, room);
     } catch (error) {
-      console.error("Error starting draft round:", error.message);
+      console.error("Error starting draft round:", error.message, error);
     }
   };
 
@@ -226,6 +287,9 @@ const SocketEvents = (io) => {
           sendSocketError(socket, "League not found!");
           return;
         }
+
+        if (league.draftRound.completed)
+          return sendSocketError(socket, "Draft round is already completed");
 
         // Find the user
         const user = await UserSchema.findOne({ _id: userId }).select(
@@ -304,14 +368,18 @@ const SocketEvents = (io) => {
         });
         sendNotificationInRoom(leagueId, `${user.name} joined the room`);
 
-        if (!userAlreadyExist)
-          checkAndStartDraftRound(socket, leagueId, updatedRoom);
+        sendDraftRoundStatusAndUpdateRoom(
+          leagueId,
+          room.draftRoundStarted || false
+        );
 
         // Notify all clients about the users' change
         io.to(leagueId).emit(socketEventsEnum.usersChange, {
           users: userAlreadyExist ? room.users : updatedRoom?.users || [],
           _id: leagueId,
         });
+
+        await checkAndStartDraftRound(socket, leagueId);
       } catch (error) {
         console.error("Error in join-room:", error.message, error);
       }
@@ -441,15 +509,24 @@ const SocketEvents = (io) => {
 
       try {
         const league = await LeagueSchema.findOne({ _id: leagueId }).populate(
-          "owner",
+          "teams.owner",
           "name"
         );
         const team = league.teams.find(
           (t) => t.owner._id.toString() === userId
         );
 
+        if (league.draftRound.completed) {
+          sendSocketError(socket, "Draft round already completed");
+          return;
+        }
+        if (league.draftRound.paused) {
+          sendSocketError(socket, "Draft round is paused by owner");
+          return;
+        }
+
         // Check if it's their turn
-        if (league.draftRound.currentTurn !== userId) {
+        if (league.draftRound.currentTurn.toString() !== userId) {
           sendSocketError(socket, "It's not your turn!");
           return;
         }
@@ -485,15 +562,91 @@ const SocketEvents = (io) => {
           leagueId,
           `${team.owner.name} picked ${pickedPlayer.slug.split("-").join(" ")}!`
         );
+        sendPlayerPickedUpdate(leagueId, pickedPlayer?._id, team.owner._id);
 
         // Clear the timer and move to the next turn
-        clearTimeout(roomTimeouts[leagueId]);
-        if (roomTimeouts.leagueId) roomTimeouts[leagueId] = null;
+        clearRoomTimeout(leagueId);
 
         goToNextTurn(leagueId, room);
       } catch (error) {
         console.error("Error picking player:", error.message);
         sendSocketError(socket, "Error picking a player:", error.message);
+      }
+    });
+
+    socket.on(socketEventsEnum.pauseRound, async (obj = {}) => {
+      const { leagueId, userId } = obj;
+      if (!leagueId || !userId)
+        return sendSocketError(socket, "Missing required parameters");
+
+      try {
+        const league = await LeagueSchema.findOne({ _id: leagueId }).populate(
+          "teams.owner",
+          "name"
+        );
+        if (league.draftRound.completed) {
+          sendSocketError(socket, "Draft round already completed");
+          return;
+        }
+
+        if (league.createdBy.toString() !== userId) {
+          sendSocketError(socket, "Only owner can pause the drafting process");
+          return;
+        }
+
+        const room = getRoom(leagueId);
+        if (!room) return sendSocketError(socket, "You are not in any room");
+
+        league.draftRound.paused = true;
+        await league.save();
+        clearRoomTimeout(leagueId);
+        sendDraftRoundStatusAndUpdateRoom(leagueId, false, "paused");
+        sendNotificationInRoom(league, `Draft round paused by owner`);
+
+        io.to(leagueId).emit(socketEventsEnum.paused, {
+          paused: true,
+          message: "Draft round paused by owner",
+        });
+      } catch (error) {
+        console.error("Error pausing:", error.message, error);
+      }
+    });
+
+    socket.on(socketEventsEnum.resumeRound, async (obj = {}) => {
+      const { leagueId, userId } = obj;
+      if (!leagueId || !userId)
+        return sendSocketError(socket, "Missing required parameters");
+
+      try {
+        const league = await LeagueSchema.findOne({ _id: leagueId }).populate(
+          "teams.owner",
+          "name"
+        );
+        if (league.draftRound.completed) {
+          sendSocketError(socket, "Draft round already completed");
+          return;
+        }
+
+        if (league.createdBy.toString() !== userId) {
+          sendSocketError(socket, "Only owner can resume the drafting process");
+          return;
+        }
+
+        const room = getRoom(leagueId);
+        if (!room) return sendSocketError(socket, "You are not in any room");
+
+        league.draftRound.paused = false;
+        await league.save();
+
+        await checkAndStartDraftRound(socket, leagueId); // this will start the draft round as well
+        sendNotificationInRoom(league, `Draft round resumed by owner`);
+
+        io.to(leagueId).emit(socketEventsEnum.resumed, {
+          paused: false,
+          message: "Draft round resumed by owner",
+        });
+      } catch (error) {
+        console.error("Error resuming:", error.message, error);
       }
     });
   });

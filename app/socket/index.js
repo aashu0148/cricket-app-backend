@@ -34,7 +34,9 @@ const rooms = [];
 //        name: string,
 //        slug:string,
 //      }
-//   ]
+//   ],
+//  draftRoundStarted:boolean,
+//  draftRoundStatus:string
 // };
 
 function getAllRooms() {
@@ -66,7 +68,9 @@ function getAllRooms() {
  *     _id: string,
  *     name: string,
  *     slug: string
- *   }>
+ *   }>,
+ *   draftRoundStarted:Boolean,
+ *   draftRoundStatus:string
  * }}
  */
 const getRoom = (leagueId) => {
@@ -89,6 +93,10 @@ const addRoom = (newRoom) => {
   if (getRoom(newRoom.leagueId)) {
     throw new Error("Room with this leagueId already exists.");
   }
+
+  if (!newRoom.draftRoundStarted) newRoom.draftRoundStarted = false;
+  if (!newRoom.draftRoundStatus) newRoom.draftRoundStatus = "_";
+
   rooms.push(newRoom);
   return newRoom;
 };

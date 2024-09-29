@@ -1,6 +1,9 @@
 const socketEventsEnum = {
   heartbeat: "heartbeat",
   getRoom: "get-room",
+  picked: "picked",
+  turnUpdate: "turn-update",
+  roundStatusUpdate: "round-status-update",
   error: "error",
   notification: "notification",
   joinedRoom: "joined-room",
@@ -11,6 +14,10 @@ const socketEventsEnum = {
   usersChange: "users-change",
   draftRoundCompleted: "draft-round-completed",
   pickPlayer: "pick-player",
+  pauseRound: "pause-round",
+  paused: "paused",
+  resumeRound: "resume-round",
+  resumed: "resumed",
 };
 
 export { socketEventsEnum };
