@@ -76,11 +76,12 @@ const getCurrentUser = (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const { name, profileImage } = req.body;
+  const { name, phone, profileImage } = req.body;
 
   const updateObj = {};
 
   if (name) updateObj.name = name;
+  if (phone) updateObj.phone = phone;
   if (profileImage) updateObj.profileImage = profileImage;
 
   await userSchema.updateOne({ _id: req.user._id }, { $set: updateObj });
