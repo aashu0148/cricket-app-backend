@@ -8,11 +8,11 @@ import { scrapePlayerDataFromEspn } from "#scrapper/scrapper.js";
 //     // Insert players into the database
 //     const insertedPlayers = await PlayerSchema.insertMany(
 //       data.map((e) => ({
-//         ...e,
 //         playerId: e.id,
 //         fullName: e.full_name,
 //         objectId: e.object_id,
 //         espnUrl: e.url,
+//         ...e,
 //       })),
 //       {
 //         ordered: false,
@@ -75,7 +75,6 @@ const searchPlayerByName = async (req, res) => {
   }
 };
 
-// Search player by name
 const scrapeAndStorePlayerDataFromEspn = async (req, res) => {
   try {
     const { url } = req.body;
@@ -90,11 +89,10 @@ const scrapeAndStorePlayerDataFromEspn = async (req, res) => {
       return createError(res, `Player already exist: ${existing.fullName}`);
 
     const newPlayer = new PlayerSchema({
-      ...data,
       playerId: data.id,
       fullName: data.full_name,
-      objectId: data.object_id,
       espnUrl: url,
+      ...data,
     });
 
     newPlayer

@@ -426,6 +426,10 @@ async function scrapeMatchDataFromUrl(url) {
 }
 
 async function scrapePlayerDataFromEspn(url) {
+  function snakeToCamelCase(str) {
+    return str.replace(/_(.)/g, (_, char) => char.toUpperCase());
+  }
+
   function scrapeStatsFromTable(tableElement) {
     const colsNames = Array.from(tableElement.querySelectorAll("thead th")).map(
       (e) => e.textContent
@@ -481,7 +485,10 @@ async function scrapePlayerDataFromEspn(url) {
         let label = box.querySelector(":scope > p").textContent;
         const value = box.querySelector("span>p").textContent;
 
-        if (label) label = label.toLowerCase().trim().replace(" ", "_");
+        if (label)
+          label = snakeToCamelCase(
+            label.toLowerCase().trim().replace(" ", "_")
+          );
 
         return { label, value };
       })
@@ -510,7 +517,7 @@ async function scrapePlayerDataFromEspn(url) {
       id,
       slug,
       country: playerData.country?.name,
-      object_id: objectId,
+      objectId,
     };
   } catch (err) {
     console.error("ERROR getting stats", err);
