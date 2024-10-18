@@ -38,6 +38,7 @@ const leagueSchema = new mongoose.Schema(
     // Teams participating in the league
     teams: [
       {
+        name: String,
         owner: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",

@@ -199,6 +199,39 @@ const getJoinedActiveLeagues = async (req, res) => {
   }
 };
 
+const updateLeagueTeamName = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { name } = req.body;
+    if (!name || !name.trim()) return createError(res, "name required");
+
+    const league = await LeagueSchema.findById(req.params.id);
+
+    if (!league) {
+      return createError(res, "League not found", 404);
+    }
+
+    // Check if the user is the owner or an admin
+    const isParticipant = league.teams.some(
+      (t) => t.owner.toString() === userId
+    );
+    if (!isParticipant) {
+      return createError(res, "You are not in this league", 401);
+    }
+
+    league.teams.forEach((t) => {
+      if (t.owner.toString() === userId) t.name = name;
+    });
+
+    league
+      .save()
+      .then((l) => createResponse(res, l, 200))
+      .catch((err) => createError(res, err?.message, 500, err));
+  } catch (error) {
+    createError(res, error.message || "Error updating team name", 500, error);
+  }
+};
+
 // Update a league (only by owner or admin)
 const updateLeague = async (req, res) => {
   try {
@@ -428,4 +461,5 @@ export {
   getJoinedActiveLeagues,
   getJoinableLeaguesOfTournament,
   getJoinedLeaguesOfTournament,
+  updateLeagueTeamName,
 };

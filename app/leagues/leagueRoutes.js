@@ -12,6 +12,7 @@ import {
   getJoinedActiveLeagues,
   getJoinableLeaguesOfTournament,
   getJoinedLeaguesOfTournament,
+  updateLeagueTeamName,
 } from "./leagueServices.js";
 import { authenticateUserMiddleware } from "#app/middleware/user.js";
 
@@ -65,6 +66,8 @@ router.get("/:id", authenticateUserMiddleware, getLeagueById);
 
 // Update a league (only owner or admin can update)
 router.patch("/:id", authenticateUserMiddleware, updateLeague);
+
+router.patch("/:id/team", authenticateUserMiddleware, updateLeagueTeamName);
 
 // Delete a league (only owner or admin can delete)
 router.delete("/:id", authenticateUserMiddleware, deleteLeague);
