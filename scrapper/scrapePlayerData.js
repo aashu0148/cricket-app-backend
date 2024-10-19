@@ -39,16 +39,21 @@ async function scrapePlayerDataFromEspn(url) {
     const textResponse = await res.text();
     const dom = new DOMParser().parseFromString(textResponse, "text/html");
 
-    const tables = Array.from(dom.querySelectorAll("table")).slice(0, 2);
+    const tables = Array.from(
+      dom
+        .querySelector("table")
+        .closest(".ds-w-full.ds-bg-fill-content-prime")
+        .querySelectorAll("table")
+    );
     const allStats = [];
     tables.forEach((table) => {
       const heading = table.parentNode.parentNode.childNodes[0].textContent;
-      const tableData = scrapeStatsFromTable(table).map((e) => ({
-        ...e,
-        type: heading,
-      }));
+      const tableData = scrapeStatsFromTable(table);
 
-      allStats.push(...tableData);
+      allStats.push({
+        heading,
+        data: tableData,
+      });
     });
 
     const image = dom.querySelector(".ds-bg-cover img")

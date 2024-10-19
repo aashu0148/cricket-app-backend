@@ -38,6 +38,45 @@ import { scrapePlayerDataFromEspn } from "#scrapper/scrapper.js";
 //   }
 // };
 
+// const updatePlayerStats = async (req, res) => {
+//   const players = await PlayerSchema.find({}).lean();
+
+//   let result = [];
+//   for (let i = 0; i < players.length; ++i) {
+//     const player = players[i];
+
+//     if (player.stats?.length) {
+//       console.log(
+//         `[${i + 1}/${players.length}] stats already exist: ${player.slug}`
+//       );
+//       continue; // stats exist
+//     }
+
+//     try {
+//       const url = player.espnUrl;
+//       const data = await scrapePlayerDataFromEspn(url);
+//       const stats = data.stats;
+//       result = data;
+//       if (stats?.length) {
+//         await PlayerSchema.updateOne(
+//           { _id: player._id },
+//           {
+//             $set: {
+//               stats,
+//             },
+//           }
+//         );
+
+//         console.log(`[${i + 1}/${players.length}] updated for: ${player.slug}`);
+//       }
+//     } catch (error) {
+//       console.log("error occurred:", error?.message);
+//     }
+//   }
+
+//   createResponse(res, result);
+// };
+
 const getAllPlayers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -67,7 +106,7 @@ const getAllPlayers = async (req, res) => {
 // Get player data by ID
 const getPlayerById = async (req, res) => {
   try {
-    const player = await PlayerSchema.findOne({ id: req.params.id });
+    const player = await PlayerSchema.findOne({ _id: req.params.id });
 
     if (!player) {
       return createError(res, "Player not found", 500);
