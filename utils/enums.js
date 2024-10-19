@@ -35,6 +35,12 @@ const playerRoleEnum = {
   ALLROUNDER: "ALLROUNDER",
 };
 
+const emailTypesEnum = {
+  DRAFT_ROUND_TIME_UPDATE: "DRAFT_ROUND__TIMEUPDATE",
+  DRAFT_ROUND_REMINDER: "DRAFT_ROUND_REMINDER",
+  DRAFT_ROUND_RESULTS: "DRAFT_ROUND_RESULTS",
+};
+
 export {
   leagueTypeEnum,
   playerDismissalTypeEnum,
@@ -42,4 +48,5 @@ export {
   userRoleEnum,
   matchStatusEnum,
   playerRoleEnum,
+  emailTypesEnum,
 };

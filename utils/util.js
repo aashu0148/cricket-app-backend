@@ -10,11 +10,14 @@ const createError = (res, message, code = 400, err = "") => {
   });
 };
 
-const createResponse = (res, data, code = 200) => {
-  res.status(code).json({
+const createResponse = (res, data, code = 200, paginationObj) => {
+  const output = {
     success: true,
     data,
-  });
+  };
+  if (paginationObj) output.pagination = paginationObj;
+
+  res.status(code).json(output);
 };
 
 function sleep(time = 1000) {
@@ -72,6 +75,40 @@ const getUniqueId = (idLength = 15) => {
   ).slice(0, idLength);
 };
 
+const getDateFormatted = (val, short = false, excludeYear = false) => {
+  if (!val) return "";
+  const date = new Date(val);
+  var day = date.toLocaleString("en-in", { day: "numeric" });
+  var month = date.toLocaleString("en-in", {
+    month: short ? "short" : "long",
+  });
+  var year = date.toLocaleString("en-in", { year: "numeric" });
+
+  if (excludeYear) return `${day} ${month}`;
+  else return `${day} ${month}, ${year}`;
+};
+
+function getTimeFormatted(value, includeSeconds = false) {
+  if (!value) return;
+
+  const date = new Date(value);
+  let hours = date?.getHours();
+  let minutes = date?.getMinutes();
+  let seconds = date?.getSeconds();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  minutes = minutes < 10 ? "0" + minutes : minutes;
+  const strTime =
+    hours + ":" + minutes + (includeSeconds ? `:${seconds} ` : " ") + ampm;
+
+  return strTime;
+}
+
+function getDateTimeFormatted(val) {
+  return `${getDateFormatted(val, true, true)} ${getTimeFormatted(val)}`;
+}
+
 export {
   sleep,
   createError,
@@ -81,4 +118,7 @@ export {
   signJwtToken,
   decodeJwtToken,
   getUniqueId,
+  getDateTimeFormatted,
+  getDateFormatted,
+  getTimeFormatted,
 };

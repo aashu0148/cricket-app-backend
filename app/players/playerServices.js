@@ -38,6 +38,32 @@ import { scrapePlayerDataFromEspn } from "#scrapper/scrapper.js";
 //   }
 // };
 
+const getAllPlayers = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 40;
+    const skip = (page - 1) * limit;
+
+    const players = await PlayerSchema.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const totalDoc = await PlayerSchema.countDocuments();
+    const totalPages = Math.ceil(totalDoc / limit);
+
+    createResponse(res, players, 200, {
+      limit,
+      page,
+      totalPages,
+      total: totalDoc,
+    });
+  } catch (error) {
+    createError(res, error.message || "Server error", 500, error);
+  }
+};
+
 // Get player data by ID
 const getPlayerById = async (req, res) => {
   try {
@@ -67,7 +93,7 @@ const searchPlayerByName = async (req, res) => {
         { fullName: new RegExp(name, "i") }, // Case-insensitive search by fullName
         { country: new RegExp(name, "i") }, // Case-insensitive search by country
       ],
-    });
+    }).limit(40);
 
     createResponse(res, players, 200);
   } catch (error) {
@@ -106,4 +132,9 @@ const scrapeAndStorePlayerDataFromEspn = async (req, res) => {
   }
 };
 
-export { getPlayerById, searchPlayerByName, scrapeAndStorePlayerDataFromEspn };
+export {
+  getAllPlayers,
+  getPlayerById,
+  searchPlayerByName,
+  scrapeAndStorePlayerDataFromEspn,
+};

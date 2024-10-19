@@ -4,8 +4,9 @@
     "paths": {
       "#app/*": ["app/*"],
       "#utils/*": ["utils/*"],
+      "#jobs/*": ["jobs/*"],
       "#scrapper/*": ["scrapper/*"]
     }
   },
-  "include": ["./app/**/*", "./utils/**/*", "./scrapper/**/*"]
+  "include": ["./app/**/*", "./utils/**/*", "./scrapper/**/*", "./jobs/**/*"]
 }

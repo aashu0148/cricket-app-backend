@@ -11,4 +11,6 @@ const configs = {
   FRONTEND_URL: process.env.FRONTEND_URL,
 };
 
-export default configs;
+const appName = "Cric Maestro";
+
+export { configs as default, appName };

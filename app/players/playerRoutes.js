@@ -1,6 +1,7 @@
 import express from "express";
 
 import {
+  getAllPlayers,
   getPlayerById,
   scrapeAndStorePlayerDataFromEspn,
   searchPlayerByName,
@@ -13,6 +14,7 @@ import {
 const rootRouter = express.Router();
 const router = express.Router();
 
+router.post("/", authenticateAdminMiddleware, getAllPlayers);
 router.post(
   "/scrape",
   authenticateAdminMiddleware,

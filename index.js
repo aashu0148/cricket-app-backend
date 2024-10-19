@@ -7,6 +7,7 @@ import http from "http";
 import serverRouter from "#app/server.js";
 import { initSocket } from "#app/socket/index.js";
 import configs from "#utils/configs.js";
+import setupCronJobs from "#jobs/index.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +28,7 @@ server.listen(configs.PORT || 5000, () => {
     .connect(configs.MONGO_URI)
     .then(() => {
       console.log("🔐 Established a connection with the database ");
+      setupCronJobs();
     })
     .catch((err) => console.log("⚠️❗Error connecting to database", err));
 });

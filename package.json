@@ -12,6 +12,7 @@
   "dependencies": {
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
+    "bree": "^9.2.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
@@ -19,6 +20,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.3",
     "node-html-parser": "^6.1.13",
+    "nodemailer": "^6.9.15",
     "socket.io": "^4.7.5"
   },
   "engines": {
@@ -27,6 +29,7 @@
   "imports": {
     "#app/*": "./app/*",
     "#utils/*": "./utils/*",
+    "#jobs/*": "./jobs/*",
     "#scrapper/*": "./scrapper/*"
   },
   "type": "module"
