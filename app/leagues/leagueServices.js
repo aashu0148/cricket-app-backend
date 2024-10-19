@@ -448,6 +448,48 @@ const removePlayerFromWishlist = async (req, res) => {
   }
 };
 
+const updateWishlistOrder = async (req, res) => {
+  try {
+    const { leagueId, playersOrder } = req.body;
+    const userId = req.user._id;
+
+    if (!Array.isArray(playersOrder))
+      return createError("playersOrder required");
+    if (typeof playersOrder[0] !== "string")
+      return createError("invalid playersOrder array");
+
+    // Find the league
+    const league = await LeagueSchema.findById(leagueId);
+    if (!league) return createError(res, "League not found", 404);
+
+    // Find the team belonging to the user
+    const team = league.teams.find((t) => t.owner.toString() === userId);
+    if (!team) {
+      return createError(res, "Your team not found in this league", 404);
+    }
+
+    const newWishlist = playersOrder
+      .map((e) => team.wishlist.find((p) => p.toString() === e))
+      .filter((e) => e);
+    const remainingPlayers = team.wishlist.filter(
+      (e) => !newWishlist.some((p) => p.toString() === e.toString())
+    );
+
+    team.wishlist = [...newWishlist, ...remainingPlayers];
+
+    // Save the league
+    await league.save();
+
+    createResponse(
+      res,
+      { message: "Wishlist updated successfully", wishlist: team.wishlist },
+      200
+    );
+  } catch (error) {
+    createError(res, error.message || "Error updating wishlist", 500, error);
+  }
+};
+
 export {
   createLeague,
   getAllLeaguesOfTournament,
@@ -462,4 +504,5 @@ export {
   getJoinableLeaguesOfTournament,
   getJoinedLeaguesOfTournament,
   updateLeagueTeamName,
+  updateWishlistOrder,
 };

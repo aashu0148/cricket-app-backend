@@ -13,6 +13,7 @@ import {
   getJoinableLeaguesOfTournament,
   getJoinedLeaguesOfTournament,
   updateLeagueTeamName,
+  updateWishlistOrder,
 } from "./leagueServices.js";
 import { authenticateUserMiddleware } from "#app/middleware/user.js";
 
@@ -60,6 +61,8 @@ router.delete(
   authenticateUserMiddleware,
   removePlayerFromWishlist
 );
+
+router.post("/wishlist/order", authenticateUserMiddleware, updateWishlistOrder);
 
 // Get specific league by ID (available to all authenticated users)
 router.get("/:id", authenticateUserMiddleware, getLeagueById);
