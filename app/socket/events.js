@@ -79,9 +79,14 @@ const SocketEvents = (io) => {
     });
   };
 
-  const sendDraftRoundTurnUpdate = (leagueId, turnUserId = "") => {
+  const sendDraftRoundTurnUpdate = (
+    leagueId,
+    turnUserId = "",
+    turnDir = ""
+  ) => {
     io.to(leagueId).emit(socketEventsEnum.turnUpdate, {
       userId: turnUserId,
+      turnDir,
     });
   };
 
@@ -116,13 +121,49 @@ const SocketEvents = (io) => {
       }
 
       // Get the index of the current turn user
-      const currentTurnIndex = league.teams.findIndex(
+      const currentTurnUserIndex = league.teams.findIndex(
         (t) =>
           t.owner._id.toString() === league.draftRound.currentTurn.toString()
       );
+      const currTurnPlayersLength =
+        league.teams[currentTurnUserIndex].players.length;
+
+      const isCurrentTurnUserBehindInPlayersCount = league.teams.some(
+        (team, i) =>
+          i !== currentTurnUserIndex &&
+          currTurnPlayersLength < team.players.length
+      );
 
       // Move to the next user in the list
-      const nextUserIndex = (currentTurnIndex + 1) % league.teams.length;
+      let nextUserIndex;
+      if (isCurrentTurnUserBehindInPlayersCount) {
+        nextUserIndex = currentTurnUserIndex; // if player is behind in players count then allow him to re-pick
+      } else {
+        if (
+          league.draftRound.turnDir === "ltr" &&
+          currentTurnUserIndex === league.teams.length - 1
+        ) {
+          league.draftRound.turnDir = "rtl";
+          nextUserIndex = currentTurnUserIndex; // switch turn and allow same user to start new turn
+        } else if (
+          league.draftRound.turnDir === "rtl" &&
+          currentTurnUserIndex === 0
+        ) {
+          league.draftRound.turnDir = "ltr";
+          nextUserIndex = currentTurnUserIndex; // switch turn and allow same user to start new turn
+        } else if (league.draftRound.turnDir === "ltr") {
+          nextUserIndex = currentTurnUserIndex + 1;
+        } else if (league.draftRound.turnDir === "rtl") {
+          nextUserIndex = currentTurnUserIndex - 1;
+        } else {
+          console.log("⚠️ SOME MAJOR ISSUE IN SELECTING TURN", { leagueId });
+          io.to(leagueId).emit(
+            socketEventsEnum.error,
+            "Some major issue in managing turns!"
+          );
+        }
+      }
+
       const nextTurnUser = league.teams[nextUserIndex].owner._id.toString();
 
       // Update the current turn
@@ -135,7 +176,11 @@ const SocketEvents = (io) => {
 
       // Notify the room about the next turn
       sendNotificationInRoom(leagueId, `It's ${newTurnUser.name}'s turn!`);
-      sendDraftRoundTurnUpdate(leagueId, nextTurnUser);
+      sendDraftRoundTurnUpdate(
+        leagueId,
+        nextTurnUser,
+        league.draftRound.turnDir
+      );
 
       // Start the next turn timer
       startTurnTimer(leagueId, nextTurnUser, room);
@@ -261,7 +306,11 @@ const SocketEvents = (io) => {
 
       // Notify the room about whose turn it is
       sendNotificationInRoom(leagueId, `It's ${newTurnUser?.name}'s turn!`);
-      sendDraftRoundTurnUpdate(leagueId, currentTurnUser);
+      sendDraftRoundTurnUpdate(
+        leagueId,
+        currentTurnUser,
+        league.draftRound.turnDir
+      );
 
       // Start the first turn timer
       startTurnTimer(leagueId, currentTurnUser, room);
