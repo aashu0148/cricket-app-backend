@@ -29,10 +29,17 @@ const leagueTypeEnum = {
   PRIVATE: "PRIVATE",
 };
 
+const playerRoleEnum = {
+  BATTER: "BATTER",
+  BOWLER: "BOWLER",
+  ALLROUNDER: "ALLROUNDER",
+};
+
 export {
   leagueTypeEnum,
   playerDismissalTypeEnum,
   tournamentStatusEnum,
   userRoleEnum,
   matchStatusEnum,
+  playerRoleEnum,
 };

@@ -44,6 +44,7 @@ const playerSchema = new mongoose.Schema({
     required: true,
   },
   playingRole: String,
+  role: String,
   country: String,
   objectId: Number,
   espnUrl: String,
