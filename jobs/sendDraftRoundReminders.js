@@ -5,10 +5,7 @@ import LeagueSchema from "#app/leagues/leagueSchema.js";
 import { sendDraftRoundReminderEmail } from "#app/leagues/leagueServices.js";
 import configs from "#utils/configs.js";
 
-await mongoose.connect(configs.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+await mongoose.connect(configs.MONGO_URI);
 
 async function startDraftRoundReminderCron() {
   try {

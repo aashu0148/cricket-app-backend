@@ -396,9 +396,9 @@ async function scrapeMatchDataFromUrl(url) {
         }).select("_id");
 
         const obj = {
-          fielder: fielder._id,
-          batsman: batsman._id,
-          bowler: bowler._id,
+          fielder: fielder?._id,
+          batsman: batsman?._id,
+          bowler: bowler?._id,
           dismissalType: wicket.dismissalText.short,
         };
 

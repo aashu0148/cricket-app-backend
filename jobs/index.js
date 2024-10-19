@@ -5,9 +5,15 @@ function setUpCronJobs() {
     jobs: [
       {
         name: "Send draft round reminders",
-        path: "./jobs/sendDraftRoundReminders.js", // this path is relative to the root of the project
+        path: "./jobs/sendDraftRoundReminders.js", // Path to draft reminders job
         cron: "*/30 * * * *", // Run every 30 minutes
-        timezone: "Asia/Kolkata", // Use Indian timezone
+        timezone: "Asia/Kolkata", // Indian timezone
+      },
+      {
+        name: "Check tournament match data",
+        path: "./jobs/checkMatchResults.js",
+        cron: "0 */12 * * *", // Run every 12 hours
+        timezone: "Asia/Kolkata", // Indian timezone
       },
     ],
   });
