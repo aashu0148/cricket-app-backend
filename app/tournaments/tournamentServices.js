@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 import TournamentSchema from "./tournamentSchema.js";
 import MatchSchema from "#app/matches/matchSchema.js";
 import ScoringSystemSchema from "#app/scoringSystems/scoringSystemSchema.js";
@@ -318,7 +320,8 @@ const getTournamentById = async (req, res) => {
 // Update a tournament
 const updateTournament = async (req, res) => {
   const { id } = req.params;
-  const { active, name, startDate, endDate, scoringSystemId } = req.body;
+  const { active, name, startDate, endDate, scoringSystemId, playerIds } =
+    req.body;
 
   try {
     const tournament = await TournamentSchema.findById(id);
@@ -331,6 +334,13 @@ const updateTournament = async (req, res) => {
     if (startDate) tournament.startDate = startDate;
     if (endDate) tournament.endDate = endDate;
     if (scoringSystemId) tournament.scoringSystem = scoringSystemId;
+
+    if (
+      playerIds?.length &&
+      Array.isArray(playerIds) &&
+      playerIds.every((e) => mongoose.Types.ObjectId.isValid(e))
+    )
+      tournament.players = playerIds;
 
     await tournament.save();
     createResponse(res, tournament, 200);

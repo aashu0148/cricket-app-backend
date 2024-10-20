@@ -17,7 +17,7 @@ router.get("/", authenticateAdminMiddleware, getAllScoringSystems);
 // Create a new scoring system (Admin only)
 router.post("/", authenticateAdminMiddleware, createScoringSystem);
 
-// Get a specific scoring system by ID (Admin only)
+// Get a specific scoring system by ID
 router.get("/:id", getScoringSystemById);
 
 // Update a scoring system (Admin only)
