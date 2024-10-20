@@ -18,7 +18,7 @@ router.get("/", authenticateAdminMiddleware, getAllScoringSystems);
 router.post("/", authenticateAdminMiddleware, createScoringSystem);
 
 // Get a specific scoring system by ID (Admin only)
-router.get("/:id", authenticateAdminMiddleware, getScoringSystemById);
+router.get("/:id", getScoringSystemById);
 
 // Update a scoring system (Admin only)
 router.patch("/:id", authenticateAdminMiddleware, updateScoringSystem);
