@@ -290,7 +290,9 @@ const getTournamentById = async (req, res) => {
       objectId: {
         $in: matchIds,
       },
-    }).select("-innings");
+    })
+      .select("-innings")
+      .lean();
 
     const allPlayerPoints = completedMatches
       .reduce((acc, curr) => [...acc, ...curr.playerPoints], [])
@@ -299,7 +301,7 @@ const getTournamentById = async (req, res) => {
           (p) => p.player.toString() === curr.player.toString()
         );
         if (player) player.points += curr.points;
-        else acc.push({ ...curr.toObject() }); // important to destructure so that we do not update points in completedMatches
+        else acc.push({ ...curr }); // important to destructure so that we do not update points in completedMatches
 
         return acc;
       }, []);

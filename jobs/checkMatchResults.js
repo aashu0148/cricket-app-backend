@@ -38,20 +38,20 @@ async function startTournamentMatchDataCron() {
       })
         .select("-innings")
         .lean();
-      const completedMatchesWithPlayerPoints = completedMatches.filter(
-        (e) => e.playerPoints?.length > 0
-      );
 
-      if (completedMatchesWithPlayerPoints.length === totalMatches) {
+      if (completedMatches.length === totalMatches) {
         // tournament is completed
-        const allPlayerPoints = completedMatchesWithPlayerPoints
+        console.log(
+          `${tournament.name} is now completed, computing playerPoints and making this one as completed ✅`
+        );
+        const allPlayerPoints = completedMatches
           .reduce((acc, curr) => [...acc, ...curr.playerPoints], [])
           .reduce((acc, curr) => {
             const player = acc.find(
               (p) => p.player.toString() === curr.player.toString()
             );
             if (player) player.points += curr.points;
-            else acc.push({ ...curr.toObject() }); // important to destructure so that we do not update points in completedMatches
+            else acc.push({ ...curr }); // important to destructure so that we do not update points in completedMatches
 
             return acc;
           }, []);
