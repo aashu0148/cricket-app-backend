@@ -297,7 +297,7 @@ const getTournamentById = async (req, res) => {
       .reduce((acc, curr) => {
         const player = acc.find((p) => p.player === curr.player);
         if (player) player.points += curr.points;
-        else acc.push({ ...curr }); // important to destructure so that we do not update points in completedMatches
+        else acc.push({ ...curr.toObject() }); // important to destructure so that we do not update points in completedMatches
 
         return acc;
       }, []);
