@@ -184,7 +184,8 @@ async function scrapePlayerIdsFromTournamentUrl(tUrl) {
         });
         if (!dbObj) continue;
 
-        parsedPlayers.push(dbObj._id);
+        if (!parsedPlayers.includes(dbObj._id))
+          parsedPlayers.push(dbObj._id.toString());
       }
     }
 
@@ -303,7 +304,7 @@ async function scrapeMatchDataFromUrl(url) {
         } = batsman;
 
         const obj = {
-          player: dbPlayer._id,
+          player: dbPlayer._id.toString(),
           objectId: batsman.player.objectId,
           position: i + 1,
           runs,
@@ -357,7 +358,7 @@ async function scrapeMatchDataFromUrl(url) {
         });
 
         const obj = {
-          player: dbPlayer._id,
+          player: dbPlayer._id.toString(),
           overs,
           balls,
           maidens,
@@ -396,9 +397,9 @@ async function scrapeMatchDataFromUrl(url) {
         }).select("_id");
 
         const obj = {
-          fielder: fielder?._id,
-          batsman: batsman?._id,
-          bowler: bowler?._id,
+          fielder: fielder?._id?.toString(),
+          batsman: batsman?._id?.toString(),
+          bowler: bowler?._id?.toString(),
           dismissalType: wicket.dismissalText.short,
         };
 
