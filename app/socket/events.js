@@ -6,6 +6,7 @@ import { getRoom, updateRoom, deleteRoom, addRoom } from "./index.js";
 import { socketEventsEnum } from "./constants.js";
 import TournamentSchema from "#app/tournaments/tournamentSchema.js";
 
+const maxPlayersAllowedInOneTeam = 15;
 const roomTimeouts = {};
 
 function clearRoomTimeout(leagueId = "") {
@@ -102,15 +103,17 @@ const SocketEvents = (io) => {
   };
 
   const goToNextTurn = async (leagueId, room) => {
-    const maxPlayersAllowed = 15;
-
     try {
       const league = await LeagueSchema.findOne({ _id: leagueId }).populate(
         "teams.owner",
         "name"
       );
 
-      if (league.teams.every((t) => t.players.length >= maxPlayersAllowed)) {
+      if (
+        league.teams.every(
+          (t) => t.players.length >= maxPlayersAllowedInOneTeam
+        )
+      ) {
         // everyone have chosen their players
         league.draftRound.completed = true;
         await league.save();
@@ -598,6 +601,12 @@ const SocketEvents = (io) => {
           return sendSocketError(
             socket,
             "Player already picked by someone else"
+          );
+
+        if (team.players.length >= maxPlayersAllowedInOneTeam)
+          return sendSocketError(
+            socket,
+            `You have picked max number of players: ${maxPlayersAllowedInOneTeam}`
           );
 
         // Assign player to user's team
