@@ -9,6 +9,7 @@ import {
   refreshTournament,
   addPlayerToTournament,
   deletePlayerFromTournament,
+  checkForTournamentMatchResults,
 } from "./tournamentServices.js";
 import {
   authenticateAdminMiddleware,
@@ -36,6 +37,12 @@ router.post("/refresh/:id", authenticateAdminMiddleware, refreshTournament);
 
 // Get all tournaments
 router.get("/", authenticateUserMiddleware, getAllTournaments);
+
+router.get(
+  "/:id/matches/results",
+  authenticateAdminMiddleware,
+  checkForTournamentMatchResults
+);
 
 router.get(
   "/ongoing-upcoming",

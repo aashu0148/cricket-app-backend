@@ -414,6 +414,30 @@ const deletePlayerFromTournament = async (req, res) => {
   }
 };
 
+const checkForTournamentMatchResults = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const tournament = await TournamentSchema.findById(id);
+    if (!tournament) {
+      return createError(res, "Tournament not found", 404);
+    }
+
+    const output = await insertMatchesResultsToTournamentIfNeeded(id);
+
+    if (!output) return createError(res, "Something went wrong!");
+
+    createResponse(res, output, 200);
+  } catch (err) {
+    createError(
+      res,
+      err.message || "Error inserting matches to tournament",
+      500,
+      err
+    );
+  }
+};
+
 export {
   createTournament,
   refreshTournament,
@@ -425,4 +449,5 @@ export {
   insertMatchesResultsToTournamentIfNeeded,
   addPlayerToTournament,
   deletePlayerFromTournament,
+  checkForTournamentMatchResults,
 };
