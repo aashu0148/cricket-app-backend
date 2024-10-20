@@ -50,7 +50,7 @@ const getScoringSystemById = async (req, res) => {
 const updateScoringSystem = async (req, res) => {
   try {
     const updatedScoringSystem = await ScoringSystemSchema.findOneAndUpdate(
-      { id: req.params.id },
+      { _id: req.params.id },
       req.body,
       { new: true }
     );
@@ -74,7 +74,7 @@ const updateScoringSystem = async (req, res) => {
 const deleteScoringSystem = async (req, res) => {
   try {
     const deletedScoringSystem = await ScoringSystemSchema.findOneAndDelete({
-      id: req.params.id,
+      _id: req.params.id,
     });
 
     if (!deletedScoringSystem) {
