@@ -205,7 +205,7 @@ const getLeaguesBasedOnFilter = async (filter) => {
     .sort({ createdAt: -1 })
     .populate(
       "tournament",
-      "name season startDate endDate scoringSystem longName"
+      "name season completed startDate endDate scoringSystem longName"
     )
     .populate("createdBy", "-token -role")
     .populate("teams.owner", "-token -role")
@@ -271,9 +271,9 @@ const getLeagueById = async (req, res) => {
   }
 };
 
-// Get league by ID
 const getJoinedLeagues = async (req, res) => {
   const userId = req.user?._id;
+
   try {
     const leagues = await getLeaguesBasedOnFilter({
       "teams.owner": userId,
@@ -285,7 +285,6 @@ const getJoinedLeagues = async (req, res) => {
   }
 };
 
-// Get league by ID
 const getJoinedLeaguesOfTournament = async (req, res) => {
   const userId = req.user._id;
   const tid = req.params.id;
@@ -302,7 +301,6 @@ const getJoinedLeaguesOfTournament = async (req, res) => {
   }
 };
 
-// Get league by ID
 const getJoinedActiveLeagues = async (req, res) => {
   const userId = req.user?._id;
   const currentDate = new Date();
@@ -315,7 +313,8 @@ const getJoinedActiveLeagues = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate({
         path: "tournament",
-        select: "name season startDate endDate scoringSystem longName",
+        select:
+          "name completed season startDate endDate scoringSystem longName",
         match: {
           endDate: { $gte: currentDate }, // Tournament not ended
         },

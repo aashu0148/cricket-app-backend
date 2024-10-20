@@ -37,6 +37,19 @@ const schema = new mongoose.Schema(
       default: true,
       required: true,
     },
+    completed: {
+      type: Boolean,
+      default: false,
+    },
+    playerPoints: [
+      {
+        player: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Player",
+        },
+        points: Number,
+      },
+    ],
     scoringSystem: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ScoringSystem",

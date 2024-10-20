@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 import TournamentSchema from "#app/tournaments/tournamentSchema.js";
+import MatchSchema from "#app/matches/matchSchema.js";
 
 import { insertMatchesResultsToTournamentIfNeeded } from "#app/tournaments/tournamentServices.js";
 import configs from "#utils/configs.js";
@@ -14,14 +15,52 @@ async function startTournamentMatchDataCron() {
 
     // Find all ongoing tournaments or those finished in the last 2 days
     const tournaments = await TournamentSchema.find({
-      $or: [
-        { endDate: { $gte: twoDaysAgo, $lte: now } }, // Finished within the last 2 days
-        { startDate: { $lte: now }, endDate: { $gte: now } }, // Ongoing tournaments
+      $and: [
+        { completed: false }, // Only tournaments where completed is false
+        {
+          $or: [
+            { endDate: { $gte: twoDaysAgo, $lte: now } }, // Finished within the last 2 days
+            { startDate: { $lte: now }, endDate: { $gte: now } }, // Ongoing tournaments
+          ],
+        },
       ],
     }).lean();
 
     for (const tournament of tournaments) {
       await insertMatchesResultsToTournamentIfNeeded(tournament._id);
+
+      const matchIds = tournament.allMatches.map((e) => e.objectId);
+      const totalMatches = matchIds.length;
+      const completedMatches = await MatchSchema.find({
+        objectId: {
+          $in: matchIds,
+        },
+      })
+        .select("-innings")
+        .lean();
+      const completedMatchesWithPlayerPoints = completedMatches.filter(
+        (e) => e.playerPoints?.length > 0
+      );
+
+      if (completedMatchesWithPlayerPoints.length === totalMatches) {
+        // tournament is completed
+        const allPlayerPoints = completedMatchesWithPlayerPoints
+          .reduce((acc, curr) => [...acc, ...curr.playerPoints], [])
+          .reduce((acc, curr) => {
+            const player = acc.find(
+              (p) => p.player.toString() === curr.player.toString()
+            );
+            if (player) player.points += curr.points;
+            else acc.push({ ...curr.toObject() }); // important to destructure so that we do not update points in completedMatches
+
+            return acc;
+          }, []);
+
+        await TournamentSchema.updateOne(
+          { _id: tournament._id },
+          { completed: true, playerPoints: allPlayerPoints }
+        );
+      }
     }
   } catch (error) {
     console.error("Error in checking tournament match data:", error);

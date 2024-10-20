@@ -10,6 +10,7 @@ import {
   addPlayerToTournament,
   deletePlayerFromTournament,
   checkForTournamentMatchResults,
+  getTournamentsPlayers,
 } from "./tournamentServices.js";
 import {
   authenticateAdminMiddleware,
@@ -43,6 +44,8 @@ router.get(
   authenticateAdminMiddleware,
   checkForTournamentMatchResults
 );
+
+router.get("/players", authenticateUserMiddleware, getTournamentsPlayers);
 
 router.get(
   "/ongoing-upcoming",

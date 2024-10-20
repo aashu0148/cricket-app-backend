@@ -234,6 +234,12 @@ function getPlayersMatchStatsFromMatchData(matchData) {
 }
 
 // Calculate total points of a player based on the scoring system
+/**
+ *
+ * @param {Object} scoringSystem
+ * @param {{player:Object,team:Object,opponentTeam:Object,batting:Object,bowling:Object,fielding:Object}} playerMatchData
+ * @returns {Number}
+ */
 function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
   let totalPoints = 0;
 

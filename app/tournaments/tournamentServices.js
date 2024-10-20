@@ -438,6 +438,37 @@ const checkForTournamentMatchResults = async (req, res) => {
   }
 };
 
+const getTournamentsPlayers = async (req, res) => {
+  const str = req.query.tournamentIds;
+  let ids = [];
+
+  try {
+    const filterObj = {};
+    if (str) {
+      ids = str
+        .split(",")
+        .map((e) => e.trim())
+        .filter((e) => e);
+
+      if (ids.length)
+        filterObj["_id"] = {
+          $in: ids,
+        };
+    }
+    if (!ids.length) return createError(res, "tournamentIds required");
+
+    const tournaments = await TournamentSchema.find(filterObj)
+      .sort({ createdAt: -1 })
+      .select("players playerPoints completed name slug longName")
+      .populate("players", "name image country fullName")
+      .lean();
+
+    createResponse(res, tournaments);
+  } catch (err) {
+    createError(res, err.message || "Error getting tournaments", 500, err);
+  }
+};
+
 export {
   createTournament,
   refreshTournament,
@@ -450,4 +481,5 @@ export {
   addPlayerToTournament,
   deletePlayerFromTournament,
   checkForTournamentMatchResults,
+  getTournamentsPlayers,
 };
