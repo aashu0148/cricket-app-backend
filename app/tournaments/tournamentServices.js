@@ -295,7 +295,9 @@ const getTournamentById = async (req, res) => {
     const allPlayerPoints = completedMatches
       .reduce((acc, curr) => [...acc, ...curr.playerPoints], [])
       .reduce((acc, curr) => {
-        const player = acc.find((p) => p.player === curr.player);
+        const player = acc.find(
+          (p) => p.player.toString() === curr.player.toString()
+        );
         if (player) player.points += curr.points;
         else acc.push(curr);
 
