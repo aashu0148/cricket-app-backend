@@ -398,9 +398,9 @@ const SocketEvents = (io) => {
               leagueId: leagueId,
               users: [userObject],
               chats: [],
-              playersPool: players.map((e) => ({
-                ...e,
-                _id: e.player._id.toString(),
+              playersPool: players.map(({ player }) => ({
+                ...player,
+                _id: player._id.toString(),
               })),
             };
             addRoom(room);
