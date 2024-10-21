@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 import LeagueSchema from "#app/leagues/leagueSchema.js";
 
-import { sendDraftRoundReminderEmail } from "#app/leagues/leagueServices.js";
+import { sendDraftRoundReminderEmail } from "#app/emails/emailServices";
 import configs from "#utils/configs.js";
 
 await mongoose.connect(configs.MONGO_URI);

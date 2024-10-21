@@ -1,140 +1,9 @@
 import LeagueSchema from "./leagueSchema.js";
-import EmailSchema from "#app/emails/emailSchema.js";
 import TournamentSchema from "#app/tournaments/tournamentSchema.js";
-import Email from "#app/notifications/Email.js";
+import { sendDraftRoundTimeChangeReminderEmail } from "#app/emails/emailServices.js";
 
-import {
-  createError,
-  createResponse,
-  getDateTimeFormatted,
-  getUniqueId,
-} from "#utils/util.js";
-import { emailTypesEnum, leagueTypeEnum, userRoleEnum } from "#utils/enums.js";
-import { appName } from "#utils/configs.js";
-
-const emailClient = new Email();
-
-async function sendDraftRoundTimeChangeReminderEmail({
-  leagueId,
-  oldStartDate,
-  newStartDate,
-}) {
-  try {
-    const league = await LeagueSchema.findById(leagueId).populate(
-      "teams.owner"
-    );
-    if (!league)
-      return console.error(
-        "League not found to send draft round time update mail, leagueId:",
-        leagueId
-      );
-
-    const leagueName = league.name;
-    const dates = {
-      old: oldStartDate || league.draftRound.startDate,
-      new: newStartDate,
-    };
-
-    const subject = `Contest Draft Time Change: ${leagueName}`;
-    const text = `Dear User,\n\nThe draft round for the contest ${leagueName} has been rescheduled. The previous time was ${getDateTimeFormatted(
-      dates.old
-    )}, and the new time is now ${getDateTimeFormatted(
-      dates.new
-    )}. Please make sure to adjust your plans accordingly.\n\nBest Regards,\n${appName} Team`;
-
-    const html = `
-      <p>Dear User,</p>
-      <p>The draft round for the contest: <strong>${leagueName}</strong> has been rescheduled.</p>
-      <p><strong>Old Time:</strong> ${getDateTimeFormatted(dates.old)}</p>
-      <p><strong>New Time:</strong> ${getDateTimeFormatted(dates.new)}</p>
-      <p>Please make sure to adjust your plans accordingly.</p>
-      <p>Best Regards,</p>
-      <p>${appName} Team</p>
-    `;
-
-    const users = league.teams.map((e) => ({
-      userId: e.owner._id,
-      email: e.owner.email,
-    }));
-
-    for (const user of users) {
-      await emailClient.sendMail({
-        type: emailTypesEnum.DRAFT_ROUND_TIME_UPDATE,
-        sentToUserId: user.userId,
-        to: user.email,
-        subject,
-        text,
-        html,
-        metadata: {
-          leagueId,
-          startDate: dates.new,
-        },
-      });
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error in sending draft round time change reminder: ", error);
-    return false;
-  }
-}
-
-async function sendDraftRoundReminderEmail({ leagueId }) {
-  try {
-    const league = await LeagueSchema.findById(leagueId).populate(
-      "teams.owner"
-    );
-    if (!league)
-      return console.error(
-        "League not found to send draft round update, leagueId:",
-        leagueId
-      );
-
-    const leagueName = league.name;
-    const formattedStartDate = getDateTimeFormatted(
-      league.draftRound.startDate
-    );
-
-    const subject = `Draft Round Reminder for ${leagueName}`;
-    const text = `Hello,\n\nThis is a reminder that the draft round for the contest "${leagueName}" will start on ${formattedStartDate}.\n\nBest regards,\n${appName} Team`;
-    const html = `
-    <p>Hello,</p>
-    <p>This is a reminder that the draft round for the contest <strong>"${leagueName}"</strong> will start on <strong>${formattedStartDate}</strong>.</p>
-    <p>Best regards,<br>${appName} Team</p>
-    `;
-
-    const users = league.teams.map((e) => ({
-      userId: e.owner._id,
-      email: e.owner.email,
-    }));
-    for (const user of users) {
-      const alreadySentEmail = await EmailSchema.findOne({
-        "metadata.leagueId": leagueId,
-        sentTo: user.userId,
-        type: emailTypesEnum.DRAFT_ROUND_REMINDER,
-      });
-
-      if (alreadySentEmail) continue; // already sent email
-
-      await emailClient.sendMail({
-        type: emailTypesEnum.DRAFT_ROUND_REMINDER,
-        sentToUserId: user.userId,
-        to: user.email,
-        subject,
-        text,
-        html,
-        metadata: {
-          leagueId,
-        },
-      });
-    }
-
-    return true;
-  } catch (error) {
-    console.error("Error in sending draft round reminder: ", error);
-    return false;
-  }
-}
+import { createError, createResponse, getUniqueId } from "#utils/util.js";
+import { leagueTypeEnum, userRoleEnum } from "#utils/enums.js";
 
 // Create a new league
 const createLeague = async (req, res) => {
@@ -649,5 +518,4 @@ export {
   getJoinedLeaguesOfTournament,
   updateLeagueTeamName,
   updateWishlistOrder,
-  sendDraftRoundReminderEmail,
 };

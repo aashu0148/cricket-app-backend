@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import TournamentSchema from "#app/tournaments/tournamentSchema.js";
 import MatchSchema from "#app/matches/matchSchema.js";
 
+import { sendTournamentResultsEmail } from "#app/emails/emailServices";
 import { insertMatchesResultsToTournamentIfNeeded } from "#app/tournaments/tournamentServices.js";
 import configs from "#utils/configs.js";
 
@@ -44,6 +45,7 @@ async function startTournamentMatchDataCron() {
         console.log(
           `${tournament.name} is now completed, computing playerPoints and making this one as completed ✅`
         );
+
         const allPlayerPoints = completedMatches
           .reduce((acc, curr) => [...acc, ...curr.playerPoints], [])
           .reduce((acc, curr) => {
@@ -60,6 +62,8 @@ async function startTournamentMatchDataCron() {
           { _id: tournament._id },
           { completed: true, playerPoints: allPlayerPoints }
         );
+
+        sendTournamentResultsEmail({ tournamentId: tournament._id });
       }
     }
   } catch (error) {
