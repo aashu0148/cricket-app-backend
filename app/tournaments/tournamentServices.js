@@ -248,7 +248,7 @@ const getOngoingUpcomingTournaments = async (req, res) => {
       ],
     })
       .sort({ createdAt: -1 })
-      .populate("-players")
+      .select("-players -allSquads")
       .lean();
 
     createResponse(res, tournaments, 200);
