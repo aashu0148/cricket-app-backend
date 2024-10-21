@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import TournamentSchema from "#app/tournaments/tournamentSchema.js";
 import MatchSchema from "#app/matches/matchSchema.js";
 
-import { sendTournamentResultsEmail } from "#app/emails/emailServices";
+import { sendTournamentResultsEmail } from "#app/emails/emailServices.js";
 import { insertMatchesResultsToTournamentIfNeeded } from "#app/tournaments/tournamentServices.js";
 import configs from "#utils/configs.js";
 
