@@ -101,12 +101,6 @@ const createTournament = async (req, res) => {
     const tournamentAlreadyExist = existing ? true : false;
     if (tournamentAlreadyExist && new Date() > new Date(existing?.endDate))
       return createError(res, `Tournament: ${existing.name} already ended`);
-    // if (existing)
-    //   return createError(
-    //     res,
-    //     `Tournament: ${existing.name} already exist`,
-    //     400
-    //   );
 
     const allMatchesRes = await scrapeMatchesFromTournamentUrl(espnUrl);
     if (!allMatchesRes.success) return createError(res, allMatchesRes.error);

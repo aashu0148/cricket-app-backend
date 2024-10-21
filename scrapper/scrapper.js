@@ -197,7 +197,7 @@ async function scrapePlayersFromTournamentUrl(tUrl) {
     return {
       success: true,
       players: parsedPlayers.filter(
-        (item, i, self) => self.findIndex((e) => e.id === item.id) === i
+        (item, i, self) => self.findIndex((e) => e.player === item.player) === i
       ),
     };
   } catch (err) {
