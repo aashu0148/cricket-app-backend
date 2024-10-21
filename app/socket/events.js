@@ -299,7 +299,7 @@ const SocketEvents = (io) => {
       // Set the first turn
       let currentTurnUser = league.draftRound.currentTurn
         ? league.draftRound.currentTurn.toString()
-        : room.users[0]._id;
+        : league.teams[0].owner._id.toString();
       league.draftRound.currentTurn = currentTurnUser;
       await league.save();
 
@@ -390,7 +390,7 @@ const SocketEvents = (io) => {
             const { players } = await TournamentSchema.findOne({
               _id: league.tournament,
             })
-              .populate("players", "name slug")
+              .populate("players.player", "name slug")
               .lean();
 
             room = {
@@ -400,7 +400,7 @@ const SocketEvents = (io) => {
               chats: [],
               playersPool: players.map((e) => ({
                 ...e,
-                _id: e._id.toString(),
+                _id: e.player._id.toString(),
               })),
             };
             addRoom(room);

@@ -119,6 +119,7 @@ const matchSchema = new mongoose.Schema(
           ref: "Player",
         },
         points: { type: Number, default: 0 },
+        breakdown: Array,
       },
     ],
   },

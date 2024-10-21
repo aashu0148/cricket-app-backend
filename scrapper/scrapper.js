@@ -157,23 +157,24 @@ async function scrapeSquadsFromTournamentUrl(tUrl) {
  *
  * @param {string} tUrl
  *
- * @returns {{success:boolean,playerIds:Array}}
+ * @returns {{success:boolean,players:Array<{player:string,squadId:string,squadObjectId:string}>}}
  */
-async function scrapePlayerIdsFromTournamentUrl(tUrl) {
+async function scrapePlayersFromTournamentUrl(tUrl) {
   const squadUrlRes = getSquadsUrlFromTournamentUrl(tUrl);
   if (!squadUrlRes.success) return squadUrlRes;
 
   try {
     const data = await getNextJsDataInScriptTagFromUrl(squadUrlRes.url);
 
-    const squads = data.content.squads;
-    const squadUrls = squads.map(
-      (item) =>
-        `${squadUrlRes.seriesUrl}/${item.squad.slug}-${item.squad.objectId}/series-squads`
-    );
+    const squads = data.content.squads.map((item) => ({
+      id: item.squad?.id,
+      objectId: item.squad?.objectId,
+      url: `${squadUrlRes.seriesUrl}/${item.squad.slug}-${item.squad.objectId}/series-squads`,
+    }));
 
     const parsedPlayers = [];
-    for (const url of squadUrls) {
+    for (const sq of squads) {
+      const url = sq.url;
       const res = await getNextJsDataInScriptTagFromUrl(url);
 
       const players = res.content.squadDetails.players;
@@ -185,14 +186,18 @@ async function scrapePlayerIdsFromTournamentUrl(tUrl) {
         if (!dbObj) continue;
 
         if (!parsedPlayers.includes(dbObj._id))
-          parsedPlayers.push(dbObj._id.toString());
+          parsedPlayers.push({
+            squadId: sq.id,
+            squadObjectId: sq.objectId,
+            player: dbObj._id.toString(),
+          });
       }
     }
 
     return {
       success: true,
-      playerIds: parsedPlayers.filter(
-        (item, i, self) => self.indexOf(item) === i
+      players: parsedPlayers.filter(
+        (item, i, self) => self.findIndex((e) => e.id === item.id) === i
       ),
     };
   } catch (err) {
@@ -533,7 +538,7 @@ async function scrapePlayerDataFromEspn(url) {
 
 export {
   scrapeSquadsFromTournamentUrl,
-  scrapePlayerIdsFromTournamentUrl,
+  scrapePlayersFromTournamentUrl,
   scrapeMatchesFromTournamentUrl,
   getTournamentDataFromUrl,
   scrapeMatchDataFromUrl,

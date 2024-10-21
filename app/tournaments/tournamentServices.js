@@ -9,7 +9,7 @@ import {
   getTournamentDataFromUrl,
   scrapeMatchDataFromUrl,
   scrapeMatchesFromTournamentUrl,
-  scrapePlayerIdsFromTournamentUrl,
+  scrapePlayersFromTournamentUrl,
   scrapeSquadsFromTournamentUrl,
 } from "#scrapper/scrapper.js";
 import { getMatchResultPageUrl } from "#scrapper/scraperUtil.js";
@@ -114,14 +114,14 @@ const createTournament = async (req, res) => {
     const squadsRes = await scrapeSquadsFromTournamentUrl(espnUrl);
     if (!squadsRes.success) return createError(res, squadsRes.error);
 
-    const playersRes = await scrapePlayerIdsFromTournamentUrl(espnUrl);
+    const playersRes = await scrapePlayersFromTournamentUrl(espnUrl);
     if (!playersRes.success) return createError(res, playersRes.error);
 
     if (tournamentAlreadyExist) {
       if (allMatchesRes.matches?.length)
         existing.allMatches = allMatchesRes.matches;
       if (squadsRes.squads?.length) existing.allSquads = squadsRes.squads;
-      if (playersRes.playerIds?.length) existing.players = playersRes.playerIds;
+      if (playersRes.players?.length) existing.players = playersRes.players;
 
       existing
         .save()
@@ -135,7 +135,7 @@ const createTournament = async (req, res) => {
         ...tournamentData.data,
         allMatches: allMatchesRes.matches,
         allSquads: squadsRes.squads,
-        players: playersRes.playerIds,
+        players: playersRes.players,
         scoringSystem: scoringSystemId,
       });
 
@@ -168,13 +168,13 @@ const refreshTournament = async (req, res) => {
     const squadsRes = await scrapeSquadsFromTournamentUrl(url);
     if (!squadsRes.success) return createError(res, squadsRes.error);
 
-    const playersRes = await scrapePlayerIdsFromTournamentUrl(url);
+    const playersRes = await scrapePlayersFromTournamentUrl(url);
     if (!playersRes.success) return createError(res, playersRes.error);
 
     if (allMatchesRes.matches?.length)
       tournament.allMatches = allMatchesRes.matches;
     if (squadsRes.squads?.length) tournament.allSquads = squadsRes.squads;
-    if (playersRes.playerIds?.length) tournament.players = playersRes.playerIds;
+    if (playersRes.players?.length) tournament.players = playersRes.players;
 
     tournament
       .save()
@@ -214,7 +214,7 @@ const getAllTournaments = async (req, res) => {
 
     const tournaments = await TournamentSchema.find(filterObj)
       .sort({ createdAt: -1 })
-      .populate("players", "name image country fullName")
+      .populate("players.player", "name image country fullName")
       .lean();
 
     for (let t of tournaments) {
@@ -254,20 +254,8 @@ const getOngoingUpcomingTournaments = async (req, res) => {
       ],
     })
       .sort({ createdAt: -1 })
-      .populate("players", "name image country fullName")
+      .populate("-players")
       .lean();
-
-    for (let t of tournaments) {
-      const matchIds = t.allMatches.map((e) => e.objectId);
-
-      const completedMatches = await MatchSchema.find({
-        objectId: {
-          $in: matchIds,
-        },
-      }).select("objectId");
-
-      t.completedMatches = completedMatches;
-    }
 
     createResponse(res, tournaments, 200);
   } catch (err) {
@@ -281,7 +269,7 @@ const getTournamentById = async (req, res) => {
 
   try {
     const tournament = await TournamentSchema.findById(id)
-      .populate("players", "-stats")
+      .populate("players.player", "-stats")
       .lean();
     if (!tournament) {
       return createError(res, "Tournament not found", 404);
@@ -320,7 +308,7 @@ const getTournamentById = async (req, res) => {
 // Update a tournament
 const updateTournament = async (req, res) => {
   const { id } = req.params;
-  const { active, name, startDate, endDate, scoringSystemId, playerIds } =
+  const { active, name, startDate, endDate, scoringSystemId, players } =
     req.body;
 
   try {
@@ -336,11 +324,15 @@ const updateTournament = async (req, res) => {
     if (scoringSystemId) tournament.scoringSystem = scoringSystemId;
 
     if (
-      playerIds?.length &&
-      Array.isArray(playerIds) &&
-      playerIds.every((e) => mongoose.Types.ObjectId.isValid(e))
+      players?.length &&
+      Array.isArray(players) &&
+      players.every(
+        (e) =>
+          mongoose.Types.ObjectId.isValid(e.player) &&
+          mongoose.Types.ObjectId.isValid(e.squadId)
+      )
     )
-      tournament.players = playerIds;
+      tournament.players = players;
 
     await tournament.save();
     createResponse(res, tournament, 200);
@@ -372,7 +364,7 @@ const addPlayerToTournament = async (req, res) => {
       return createError(res, "Tournament not found", 404);
     }
 
-    if (tournament.players.includes(playerId)) {
+    if (tournament.players.some((e) => e.player.toString() === playerId)) {
       return createError(res, "Player is already in the tournament", 400);
     }
 
@@ -402,7 +394,9 @@ const deletePlayerFromTournament = async (req, res) => {
       return createError(res, "Tournament not found", 404);
     }
 
-    const playerIndex = tournament.players.indexOf(playerId);
+    const playerIndex = tournament.players.findIndex(
+      (e) => e.player.toString() === playerId
+    );
     if (playerIndex === -1) {
       return createError(
         res,
@@ -472,7 +466,7 @@ const getTournamentsPlayers = async (req, res) => {
     const tournaments = await TournamentSchema.find(filterObj)
       .sort({ createdAt: -1 })
       .select("players playerPoints completed name slug longName")
-      .populate("players", "name image country fullName")
+      .populate("players.players", "name image country fullName")
       .lean();
 
     createResponse(res, tournaments);

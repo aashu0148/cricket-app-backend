@@ -238,13 +238,13 @@ function getPlayersMatchStatsFromMatchData(matchData) {
  *
  * @param {Object} scoringSystem
  * @param {{player:Object,team:Object,opponentTeam:Object,batting:Object,bowling:Object,fielding:Object}} playerMatchData
- * @returns {Number}
+ * @returns {{points:Number,breakdown:Array<{label:string,points:Number}>}}
  */
 function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
   let totalPoints = 0;
+  const pointsBreakdown = [];
 
   // Calculate average scoring rate
-
   const averageScoringRateOfMatch = parseFloat(
     (
       (playerMatchData.team.runs + playerMatchData.opponentTeam.runs) /
@@ -255,8 +255,10 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
   // --- Batting Points Calculation ---
   if (playerMatchData.batting && playerMatchData.batting.battedType === "yes") {
     // 1. Runs scored points
-    totalPoints +=
+    const runPoints =
       playerMatchData.batting.runs * scoringSystem.batting.runPoints;
+    totalPoints += runPoints;
+    pointsBreakdown.push({ label: "Runs", points: runPoints });
 
     // 2. Boundary points
     const boundaryRule = scoringSystem.batting.boundaryPoints.find(
@@ -265,8 +267,13 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
         averageScoringRateOfMatch <= rule.maxRate
     );
     if (boundaryRule) {
-      totalPoints += playerMatchData.batting.fours * boundaryRule.four;
-      totalPoints += playerMatchData.batting.sixes * boundaryRule.six;
+      const fourPoints = playerMatchData.batting.fours * boundaryRule.four;
+      const sixPoints = playerMatchData.batting.sixes * boundaryRule.six;
+      totalPoints += fourPoints;
+      totalPoints += sixPoints;
+
+      pointsBreakdown.push({ label: "Fours", points: fourPoints });
+      pointsBreakdown.push({ label: "Sixes", points: sixPoints });
     }
 
     // 3. Runs scored milestone bonus
@@ -283,6 +290,10 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
         playerMatchData.batting.isOut
       ) {
         totalPoints += milestoneRule.points;
+        pointsBreakdown.push({
+          label: "Runs scored milestone",
+          points: milestoneRule.points,
+        });
       }
     }
 
@@ -304,7 +315,13 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
           multiplierRule.multiplier *
           (playerMatchData.batting.runs -
             averageScoringRateOfMatch * playerMatchData.batting.balls);
-        totalPoints += Math.round(strikeRateBonus);
+
+        const strikeRateBonusPoints = Math.round(strikeRateBonus);
+        totalPoints += strikeRateBonusPoints;
+        pointsBreakdown.push({
+          label: "Strike rate bonus",
+          points: strikeRateBonusPoints,
+        });
       }
     }
   }
@@ -322,8 +339,16 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
       if (wicketRule) {
         if (p.runs >= wicketRule.runsCapForIncrementingPoints) {
           totalPoints += wicketRule.incrementedPoints;
+          pointsBreakdown.push({
+            label: "Wicket",
+            points: wicketRule.incrementedPoints,
+          });
         } else {
           totalPoints += wicketRule.points;
+          pointsBreakdown.push({
+            label: "Wicket",
+            points: wicketRule.points,
+          });
         }
       }
     });
@@ -335,7 +360,12 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
         averageScoringRateOfMatch <= rule.maxRate
     );
     if (dotBallRule) {
-      totalPoints += playerMatchData.bowling.dots * dotBallRule.points;
+      const dotBallPoints = playerMatchData.bowling.dots * dotBallRule.points;
+      totalPoints += dotBallPoints;
+      pointsBreakdown.push({
+        label: "Dot ball",
+        points: dotBallPoints,
+      });
     }
 
     // 3. Wickets milestone bonus
@@ -346,6 +376,10 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
     );
     if (milestoneRule) {
       totalPoints += milestoneRule.points;
+      pointsBreakdown.push({
+        label: "Wicket milestone",
+        points: milestoneRule.points,
+      });
     }
 
     // 4. Bowling Economy Rate Bonus
@@ -365,26 +399,39 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
           economyBonusRule.multiplier *
           (averageScoringRateOfMatch * playerMatchData.bowling.balls -
             playerMatchData.bowling.conceded);
+
         totalPoints += Math.round(economyBonus);
+        pointsBreakdown.push({
+          label: "Economy rate",
+          points: Math.round(economyBonus),
+        });
       }
     }
   }
 
   // --- Fielding Points Calculation ---
   if (playerMatchData.fielding) {
-    totalPoints +=
+    const catchPoints =
       playerMatchData.fielding[playerDismissalTypeEnum.caught] *
       scoringSystem.fielding.catchPoints;
-    totalPoints +=
+    const stumpingPoints =
       playerMatchData.fielding[playerDismissalTypeEnum.stumped] *
       scoringSystem.fielding.stumpingPoints;
-    totalPoints +=
+    const runoutPoints =
       playerMatchData.fielding[playerDismissalTypeEnum.runOut] *
       scoringSystem.fielding.directHitRunOutPoints;
+
+    totalPoints += catchPoints;
+    totalPoints += stumpingPoints;
+    totalPoints += runoutPoints;
+
+    pointsBreakdown.push({ label: "Catch", points: catchPoints });
+    pointsBreakdown.push({ label: "Stumping", points: stumpingPoints });
+    pointsBreakdown.push({ label: "Runout", points: runoutPoints });
   }
 
   // Return the rounded total points
-  return Math.round(totalPoints);
+  return { points: Math.round(totalPoints), breakdown: pointsBreakdown };
 }
 
 export {

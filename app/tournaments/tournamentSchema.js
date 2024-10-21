@@ -73,8 +73,11 @@ const schema = new mongoose.Schema(
     allSquads: [squadSchema],
     players: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Player",
+        player: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Player",
+        },
+        squadId: String,
       },
     ],
     slug: String,

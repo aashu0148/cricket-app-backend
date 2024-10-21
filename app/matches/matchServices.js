@@ -82,17 +82,18 @@ const calculateAndStoreMatchPlayerPoints = async (matchId) => {
     for (let playerId in allPLayersStats) {
       const stats = allPLayersStats[playerId];
 
-      const points = calculatePlayerFantasyPoints(scoringSystem, stats);
+      const pointsRes = calculatePlayerFantasyPoints(scoringSystem, stats);
 
       playerPoints[playerId] = {
         player: stats.player,
-        points,
+        ...pointsRes,
       };
     }
 
     const playerPointsArray = Object.keys(playerPoints).map((k) => ({
       player: k,
       points: playerPoints[k].points,
+      breakdown: playerPoints[k].breakdown,
     }));
 
     await MatchSchema.updateOne(
