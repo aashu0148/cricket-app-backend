@@ -281,18 +281,22 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
       .sort((a, b) => (a.runsUpto < b.runsUpto ? -1 : 1))
       .find((m) => playerMatchData.batting.runs <= m.runsUpto);
     if (milestoneRule) {
+      const milestonePoints = milestoneRule.points;
+
       if (
-        !scoringSystem.batting.runMilestoneBonus.negativeRunsExemptPositions.includes(
+        milestonePoints < 0 &&
+        (scoringSystem.batting.runMilestoneBonus.negativeRunsExemptPositions.includes(
           playerMatchData.batting.position
-        ) &&
-        playerMatchData.batting.runs >= 1 &&
-        playerMatchData.batting.balls >= 10 &&
-        playerMatchData.batting.isOut
+        ) ||
+          (playerMatchData.batting.balls < 10 &&
+            !playerMatchData.batting.isOut))
       ) {
-        totalPoints += milestoneRule.points;
+        // when milestonePoints are negative and (player is not out and payed less than 10 balls) or players batting in exempt position
+      } else {
+        totalPoints += milestonePoints;
         pointsBreakdown.push({
           label: "Runs scored milestone",
-          points: milestoneRule.points,
+          points: milestonePoints,
         });
       }
     }

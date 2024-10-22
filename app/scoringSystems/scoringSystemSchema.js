@@ -60,7 +60,6 @@ const scoringSystemSchema = new mongoose.Schema(
             points: {
               type: Number,
               required: [true, "Points for the milestone are required."],
-              min: [0, "Milestone points must be a positive number."],
             },
           },
         ],
@@ -70,10 +69,10 @@ const scoringSystemSchema = new mongoose.Schema(
           validate: {
             validator: function (positions) {
               return positions.every(
-                (pos) => Number.isInteger(pos) && pos >= 1 && pos <= 11
+                (pos) => Number.isInteger(pos) && pos >= 1 && pos <= 12
               );
             },
-            message: "Positions must be integers between 1 and 11.",
+            message: "Positions must be integers between 1 and 12.",
           },
         },
       },
@@ -85,10 +84,10 @@ const scoringSystemSchema = new mongoose.Schema(
               validate: {
                 validator: function (positions) {
                   return positions.every(
-                    (pos) => Number.isInteger(pos) && pos >= 1 && pos <= 11
+                    (pos) => Number.isInteger(pos) && pos >= 1 && pos <= 12
                   );
                 },
-                message: "Batting positions must be integers between 1 and 11.",
+                message: "Batting positions must be integers between 1 and 12.",
               },
             },
             minBalls: {
@@ -140,7 +139,7 @@ const scoringSystemSchema = new mongoose.Schema(
               "Minimum batting position is required for wicket points.",
             ],
             min: [1, "Minimum batting position must be at least 1."],
-            max: [11, "Minimum batting position cannot exceed 11."],
+            max: [12, "Maximum batting position cannot exceed 12."],
           },
           maxBattingPosition: {
             type: Number,
@@ -149,7 +148,7 @@ const scoringSystemSchema = new mongoose.Schema(
               "Maximum batting position is required for wicket points.",
             ],
             min: [1, "Maximum batting position must be at least 1."],
-            max: [11, "Maximum batting position cannot exceed 11."],
+            max: [12, "Maximum batting position cannot exceed 12."],
             validate: {
               validator: function (value) {
                 return value >= this.minBattingPosition;
