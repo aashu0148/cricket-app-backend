@@ -321,9 +321,7 @@ const updateTournament = async (req, res) => {
       players?.length &&
       Array.isArray(players) &&
       players.every(
-        (e) =>
-          mongoose.Types.ObjectId.isValid(e.player) &&
-          mongoose.Types.ObjectId.isValid(e.squadId)
+        (e) => mongoose.Types.ObjectId.isValid(e.player) && e.squadId
       )
     )
       tournament.players = players;
