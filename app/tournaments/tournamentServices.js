@@ -324,7 +324,10 @@ const updateTournament = async (req, res) => {
         (e) => mongoose.Types.ObjectId.isValid(e.player) && e.squadId
       )
     )
-      tournament.players = players;
+      tournament.players = players.map((e) => ({
+        player: e.player,
+        squadId: e.squadId,
+      }));
 
     await tournament.save();
     createResponse(res, tournament, 200);
