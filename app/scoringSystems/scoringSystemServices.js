@@ -238,7 +238,7 @@ function getPlayersMatchStatsFromMatchData(matchData) {
  *
  * @param {Object} scoringSystem
  * @param {{player:Object,team:Object,opponentTeam:Object,batting:Object,bowling:Object,fielding:Object}} playerMatchData
- * @returns {{points:Number,breakdown:Array<{label:string,points:Number}>}}
+ * @returns {{points:Number,breakdown:Array<{label:string,points:Number}>,amsr:Number}}
  */
 function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
   let totalPoints = 0;
@@ -338,10 +338,11 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
 
       if (wicketRule) {
         if (p.runs >= wicketRule.runsCapForIncrementingPoints) {
-          totalPoints += wicketRule.incrementedPoints;
+          const netPoints = wicketRule.incrementedPoints + wicketRule.points;
+          totalPoints += netPoints;
           pointsBreakdown.push({
             label: "Wicket",
-            points: wicketRule.incrementedPoints,
+            points: netPoints,
           });
         } else {
           totalPoints += wicketRule.points;
@@ -430,8 +431,20 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
     pointsBreakdown.push({ label: "Runout", points: runoutPoints });
   }
 
+  const finalBreakdown = pointsBreakdown.reduce((acc, curr) => {
+    const idx = acc.findIndex((e) => e.label === curr.label);
+    if (idx > -1) acc[idx].points += curr.points;
+    else acc.push(curr);
+
+    return acc;
+  }, []);
+
   // Return the rounded total points
-  return { points: Math.round(totalPoints), breakdown: pointsBreakdown };
+  return {
+    points: Math.round(totalPoints),
+    breakdown: finalBreakdown,
+    amsr: averageScoringRateOfMatch,
+  };
 }
 
 export {
