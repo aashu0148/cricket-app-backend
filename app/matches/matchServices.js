@@ -56,9 +56,13 @@ const insertMatchIntoDB = async (tournamentId, matchData) => {
 /**
  *
  * @param {string} matchId
+ * @param {boolean} onlyCalculate
  * @returns {{success:boolean,error:string}}
  */
-const calculateAndStoreMatchPlayerPoints = async (matchId) => {
+const calculateAndStoreMatchPlayerPoints = async (
+  matchId,
+  onlyCalculate = false
+) => {
   try {
     const match = await getPopulatedMatchDetails(matchId);
     if (!match)
@@ -88,6 +92,17 @@ const calculateAndStoreMatchPlayerPoints = async (matchId) => {
         player: stats.player,
         ...pointsRes,
       };
+
+      if (onlyCalculate) playerPoints[playerId].stats = stats;
+    }
+
+    if (onlyCalculate) {
+      const arr = Object.keys(playerPoints).map((k) => ({
+        _id: k,
+        ...playerPoints[k],
+      }));
+
+      return { success: true, data: arr };
     }
 
     const playerPointsArray = Object.keys(playerPoints).map((k) => ({
@@ -112,6 +127,14 @@ const calculateAndStoreMatchPlayerPoints = async (matchId) => {
       error: error?.message || "Error calculating and storing points",
     };
   }
+};
+
+const getMatchPointsData = async (req, res) => {
+  const { id } = req.params;
+
+  const { data } = await calculateAndStoreMatchPlayerPoints(id, true);
+
+  createResponse(res, data);
 };
 
 const getMatchesForTournament = async (req, res) => {
@@ -151,4 +174,5 @@ export {
   getMatchesForTournament,
   getMatchDetails,
   calculateAndStoreMatchPlayerPoints,
+  getMatchPointsData,
 };
