@@ -6,7 +6,7 @@ function setUpCronJobs() {
       {
         name: "Send draft round reminders",
         path: "./jobs/sendDraftRoundReminders.js", // Path to draft reminders job
-        cron: "*/30 * * * *", // Run every 30 minutes
+        cron: "*/15 * * * *", // Run every 15 minutes
         timezone: "Asia/Kolkata", // Indian timezone
       },
       {
