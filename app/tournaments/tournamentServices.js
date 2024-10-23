@@ -461,7 +461,7 @@ const getTournamentsPlayers = async (req, res) => {
     const tournaments = await TournamentSchema.find(filterObj)
       .sort({ createdAt: -1 })
       .select("players playerPoints completed name slug longName")
-      .populate("players.players", "name image country fullName")
+      .populate("players.player", "name image country fullName")
       .lean();
 
     createResponse(res, tournaments);

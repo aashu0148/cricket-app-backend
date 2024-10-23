@@ -138,6 +138,7 @@ async function sendDraftRoundReminderEmail({ leagueId }) {
     const league = await LeagueSchema.findById(leagueId).populate(
       "teams.owner"
     );
+
     if (!league)
       return console.error(
         "League not found to send draft round update, leagueId:",
@@ -185,7 +186,7 @@ async function sendDraftRoundReminderEmail({ leagueId }) {
 
     return true;
   } catch (error) {
-    console.error("Error in sending draft round reminder: ", error);
+    console.error("Error sending draft round reminder Email: ", error);
     return false;
   }
 }

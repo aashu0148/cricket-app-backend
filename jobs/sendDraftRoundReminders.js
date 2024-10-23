@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+import UserSchema from "#app/users/userSchema.js"; // this import is very important as we are here registering the User module which we will user to populate teams.owner in a league later while sending email
 import LeagueSchema from "#app/leagues/leagueSchema.js";
 
 import { sendDraftRoundReminderEmail } from "#app/emails/emailServices.js";
