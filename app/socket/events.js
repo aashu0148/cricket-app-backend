@@ -83,11 +83,13 @@ const SocketEvents = (io) => {
   const sendDraftRoundTurnUpdate = (
     leagueId,
     turnUserId = "",
-    turnDir = ""
+    turnDir = "",
+    turnTimestamp
   ) => {
     io.to(leagueId).emit(socketEventsEnum.turnUpdate, {
       userId: turnUserId,
       turnDir,
+      turnTimestamp,
     });
   };
 
@@ -171,6 +173,7 @@ const SocketEvents = (io) => {
 
       // Update the current turn
       league.draftRound.currentTurn = nextTurnUser;
+      league.draftRound.turnTimestamp = Date.now() + 100; // say it takes 100 for league to get saved in DB
       await league.save();
 
       const newTurnUser = league.teams.find(
@@ -182,7 +185,8 @@ const SocketEvents = (io) => {
       sendDraftRoundTurnUpdate(
         leagueId,
         nextTurnUser,
-        league.draftRound.turnDir
+        league.draftRound.turnDir,
+        league.draftRound.turnTimestamp
       );
 
       // Start the next turn timer
@@ -301,6 +305,7 @@ const SocketEvents = (io) => {
         ? league.draftRound.currentTurn.toString()
         : league.teams[0].owner._id.toString();
       league.draftRound.currentTurn = currentTurnUser;
+      league.draftRound.turnTimestamp = Date.now() + 100;
       await league.save();
 
       const newTurnUser = league.teams.find(
@@ -312,7 +317,8 @@ const SocketEvents = (io) => {
       sendDraftRoundTurnUpdate(
         leagueId,
         currentTurnUser,
-        league.draftRound.turnDir
+        league.draftRound.turnDir,
+        league.draftRound.turnTimestamp
       );
 
       // Start the first turn timer

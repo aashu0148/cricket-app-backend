@@ -72,6 +72,7 @@ const leagueSchema = new mongoose.Schema(
         ref: "User",
         default: null,
       },
+      turnTimestamp: Number,
       turnDir: {
         enum: ["ltr", "rtl"],
         default: "ltr",
