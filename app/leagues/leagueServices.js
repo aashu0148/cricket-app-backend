@@ -330,6 +330,7 @@ const joinLeague = async (req, res) => {
   try {
     const { leagueId, password } = req.body;
     const userId = req.user._id;
+    const maxLeaguePlayers = 6;
 
     const league = await LeagueSchema.findById(leagueId);
 
@@ -352,8 +353,12 @@ const joinLeague = async (req, res) => {
       );
 
     // Check if league has space for more teams
-    if (league.teams.length >= 10) {
-      return createError(res, "League is full", 403);
+    if (league.teams.length >= maxLeaguePlayers) {
+      return createError(
+        res,
+        `League is full, maximum of ${maxLeaguePlayers} players`,
+        403
+      );
     }
 
     const timeDiff = new Date(league.draftRound.startDate) - new Date();

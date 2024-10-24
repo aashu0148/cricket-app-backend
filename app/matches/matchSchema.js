@@ -120,6 +120,7 @@ const matchSchema = new mongoose.Schema(
         },
         points: { type: Number, default: 0 },
         breakdown: Array,
+        amsr: Number,
       },
     ],
   },
