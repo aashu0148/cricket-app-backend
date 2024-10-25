@@ -110,6 +110,10 @@ const matchSchema = new mongoose.Schema(
     status: String,
     statusText: String,
     startTime: String,
+    amsr: {
+      type: Number,
+      default: null,
+    },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     playerPoints: [
@@ -120,7 +124,6 @@ const matchSchema = new mongoose.Schema(
         },
         points: { type: Number, default: 0 },
         breakdown: Array,
-        amsr: Number,
       },
     ],
   },
