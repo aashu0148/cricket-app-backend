@@ -82,8 +82,8 @@ const calculateAndStoreMatchPlayerPoints = async (
 
     const allPLayersStats = getPlayersMatchStatsFromMatchData(match);
 
-    const playerPoints = {},
-      amsr = null;
+    const playerPoints = {};
+    let amsr = null;
     for (let playerId in allPLayersStats) {
       const stats = allPLayersStats[playerId];
 
