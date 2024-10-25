@@ -89,10 +89,12 @@ const calculateAndStoreMatchPlayerPoints = async (
 
       const pointsRes = calculatePlayerFantasyPoints(scoringSystem, stats);
 
-      amsr = pointsRes.amsr;
+      if (!amsr) amsr = pointsRes.amsr;
+
       playerPoints[playerId] = {
         player: stats.player,
         ...pointsRes,
+        amsr,
       };
 
       if (onlyCalculate) playerPoints[playerId].stats = stats;
