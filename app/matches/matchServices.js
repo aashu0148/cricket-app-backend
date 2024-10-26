@@ -173,10 +173,47 @@ const getMatchDetails = async (req, res) => {
   }
 };
 
+// Paginated Get All Matches
+const getAllMatches = async (req, res) => {
+  const { page = 1, limit = 20 } = req.query;
+  const skip = (page - 1) * limit;
+
+  try {
+    const matches = await MatchSchema.find({})
+      .select("-innings")
+      .skip(skip)
+      .limit(parseInt(limit))
+      .exec();
+
+    const totalMatches = await MatchSchema.countDocuments();
+    const totalPages = Math.ceil(totalMatches / limit);
+
+    return createResponse(res, matches, 200, { total, totalPages });
+  } catch (error) {
+    return createError(res, error.message, 500);
+  }
+};
+
+// Delete a Match
+const deleteMatch = async (req, res) => {
+  const { matchId } = req.params;
+
+  try {
+    const deletedMatch = await MatchSchema.findByIdAndDelete(matchId);
+    if (!deletedMatch) return createError(res, "Match not found", 404);
+
+    return createResponse(res, { message: "Match deleted successfully" }, 200);
+  } catch (error) {
+    return createError(res, error.message, 500);
+  }
+};
+
 export {
   insertMatchIntoDB,
   getMatchesForTournament,
   getMatchDetails,
   calculateAndStoreMatchPlayerPoints,
   getMatchPointsData,
+  getAllMatches,
+  deleteMatch,
 };

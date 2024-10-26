@@ -3,6 +3,8 @@ import {
   getMatchesForTournament,
   getMatchDetails,
   getMatchPointsData,
+  deleteMatch,
+  getAllMatches,
 } from "./matchServices.js";
 import {
   authenticateAdminMiddleware,
@@ -12,13 +14,15 @@ import {
 const rootRouter = express.Router();
 const router = express.Router();
 
+router.get("/", authenticateUserMiddleware, getAllMatches);
 router.get(
   "/tournament/:tournamentId",
   authenticateUserMiddleware,
   getMatchesForTournament
 );
-router.get("/:matchId", authenticateUserMiddleware, getMatchDetails);
 router.get("/points-data/:id", authenticateAdminMiddleware, getMatchPointsData);
+router.get("/:matchId", authenticateUserMiddleware, getMatchDetails);
+router.delete("/:matchId", authenticateAdminMiddleware, deleteMatch);
 
 rootRouter.use("/matches", router);
 
