@@ -6,6 +6,7 @@ import tournamentRoutes from "#app/tournaments/tournamentRoutes.js";
 import matchRoutes from "#app/matches/matchRoutes.js";
 import scoringSystemRoutes from "#app/scoringSystems/scoringSystemRoutes.js";
 import leagueRoutes from "#app/leagues/leagueRoutes.js";
+import scrapperRoutes from "#scrapper/scrapperRoutes.js";
 
 import { authenticateAdminMiddleware } from "./middleware/user.js";
 import { createResponse } from "#utils/util.js";
@@ -24,5 +25,6 @@ router.use(tournamentRoutes);
 router.use(matchRoutes);
 router.use(scoringSystemRoutes);
 router.use(leagueRoutes);
+router.use(scrapperRoutes);
 
 export default router;

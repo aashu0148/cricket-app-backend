@@ -4,10 +4,8 @@ const statsSchema = new mongoose.Schema({
   heading: String,
   data: [
     {
-      format: {
-        type: String,
-        required: true,
-      },
+      format: String,
+      tournament: String,
       mat: String,
       inns: String,
       no: String,
