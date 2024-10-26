@@ -82,11 +82,12 @@ const matchSchema = new mongoose.Schema(
         fieldings: [
           {
             dismissalType: String,
-            fielder: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: "Player",
-              required: true,
-            },
+            fielders: [
+              {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Player",
+              },
+            ],
             batsman: {
               type: mongoose.Schema.Types.ObjectId,
               ref: "Player",

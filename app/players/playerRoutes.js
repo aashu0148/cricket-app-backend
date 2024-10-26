@@ -4,6 +4,7 @@ import {
   getAllPlayers,
   getPlayerById,
   scrapeAndStorePlayerDataFromEspn,
+  scrapeAndStorePlayerDataFromSquadUrl,
   searchPlayerByName,
 } from "./playerServices.js";
 import {
@@ -19,6 +20,11 @@ router.post(
   "/scrape",
   authenticateAdminMiddleware,
   scrapeAndStorePlayerDataFromEspn
+);
+router.post(
+  "/scrape/squad",
+  authenticateAdminMiddleware,
+  scrapeAndStorePlayerDataFromSquadUrl
 );
 router.get("/search", authenticateUserMiddleware, searchPlayerByName);
 router.get("/:id", authenticateUserMiddleware, getPlayerById);

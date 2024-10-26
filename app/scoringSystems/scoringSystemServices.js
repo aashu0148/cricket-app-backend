@@ -213,20 +213,29 @@ function getPlayersMatchStatsFromMatchData(matchData) {
   // Parse fielding stats (sum multiple contributions)
   matchData.innings.forEach((inning) => {
     inning.fieldings.forEach((dismissal) => {
-      const { dismissalType, fielder } = dismissal;
-      const fielderId = fielder._id;
+      const { dismissalType, fielders: fieldersArray, fielder } = dismissal;
 
-      // Initialize stats for the fielder if not already initialized
-      initializeStats(fielderId, fielder);
+      const fielders = Array.isArray(fieldersArray)
+        ? fieldersArray
+        : fielder?._id
+        ? [fielder]
+        : [];
 
-      // Update fielding stats based on the dismissal type
-      if (dismissalType === playerDismissalTypeEnum.caught) {
-        playerStats[fielderId].fielding[playerDismissalTypeEnum.caught] += 1;
-      } else if (dismissalType === playerDismissalTypeEnum.stumped) {
-        playerStats[fielderId].fielding[playerDismissalTypeEnum.stumped] += 1;
-      } else if (dismissalType === playerDismissalTypeEnum.runOut) {
-        playerStats[fielderId].fielding[playerDismissalTypeEnum.runOut] += 1;
-      }
+      fielders.forEach((fielder) => {
+        const fielderId = fielder._id;
+
+        // Initialize stats for the fielder if not already initialized
+        initializeStats(fielderId, fielder);
+
+        // Update fielding stats based on the dismissal type
+        if (dismissalType === playerDismissalTypeEnum.caught) {
+          playerStats[fielderId].fielding[playerDismissalTypeEnum.caught] += 1;
+        } else if (dismissalType === playerDismissalTypeEnum.stumped) {
+          playerStats[fielderId].fielding[playerDismissalTypeEnum.stumped] += 1;
+        } else if (dismissalType === playerDismissalTypeEnum.runOut) {
+          playerStats[fielderId].fielding[playerDismissalTypeEnum.runOut] += 1;
+        }
+      });
     });
   });
 

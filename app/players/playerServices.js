@@ -1,6 +1,9 @@
 import PlayerSchema from "./playerSchema.js";
 import { createError, createResponse } from "#utils/util.js";
-import { scrapePlayerDataFromEspn } from "#scrapper/scrapper.js";
+import {
+  scrapePlayerDataFromEspn,
+  scrapePlayersDataFromSquadUrl,
+} from "#scrapper/scrapper.js";
 
 // Bulk insert players into the database
 // const bulkInsertPlayers = async (req, res) => {
@@ -149,7 +152,7 @@ const scrapeAndStorePlayerDataFromEspn = async (req, res) => {
     const data = await scrapePlayerDataFromEspn(url);
     if (!data) return createError(res, `Incorrect URL or something went wrong`);
 
-    const existing = await PlayerSchema.findOne({ objectId: data.object_id });
+    const existing = await PlayerSchema.findOne({ objectId: data.objectId });
     if (existing)
       return createError(res, `Player already exist: ${existing.fullName}`);
 
@@ -171,9 +174,45 @@ const scrapeAndStorePlayerDataFromEspn = async (req, res) => {
   }
 };
 
+const scrapeAndStorePlayerDataFromSquadUrl = async (req, res) => {
+  try {
+    const { squadUrl } = req.body;
+
+    if (!squadUrl) return createError(res, "squadUrl is required", 400);
+
+    const data = await scrapePlayersDataFromSquadUrl(squadUrl);
+    if (!data?.length)
+      return createError(res, `Incorrect URL or something went wrong`);
+
+    const saved = [];
+    for (const player of data) {
+      const existing = await PlayerSchema.findOne({
+        objectId: player.objectId,
+      });
+      if (existing) continue;
+
+      const newPlayer = new PlayerSchema({
+        playerId: player.id,
+        fullName: player.full_name,
+        ...player,
+      });
+
+      await newPlayer.save();
+      saved.push(newPlayer._id.toString());
+    }
+
+    if (!saved.length) return createError(res, "All Players already exist");
+
+    createResponse(res, saved, 201);
+  } catch (error) {
+    createError(res, error.message || "Server error", 500, error);
+  }
+};
+
 export {
   getAllPlayers,
   getPlayerById,
   searchPlayerByName,
   scrapeAndStorePlayerDataFromEspn,
+  scrapeAndStorePlayerDataFromSquadUrl,
 };

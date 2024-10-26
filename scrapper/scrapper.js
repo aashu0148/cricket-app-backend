@@ -8,6 +8,7 @@ import {
 } from "./scraperUtil.js";
 import PlayerSchema from "#app/players/playerSchema.js";
 import { matchStatusEnum } from "#utils/enums.js";
+import { espnOrigin } from "./scrapperConstants.js";
 
 const getNextJsDataInScriptTagFromUrl = async (url) => {
   try {
@@ -27,6 +28,42 @@ const getNextJsDataInScriptTagFromUrl = async (url) => {
   } catch (err) {
     console.error("Error scrapping data", err);
     return null;
+  }
+};
+
+async function scrapeCricketerUrlsFromSquadUrl(squadUrl) {
+  try {
+    const textResponse = (await axios.get(squadUrl)).data;
+    const dom = parseHtmlAsDOM(textResponse);
+
+    const urls = Array.from(
+      dom.querySelectorAll(`a.ds-leading-none[href^="/cricketers/"]`)
+    )
+      .map((item) => item.getAttribute("href"))
+      .filter((e) => e)
+      .map((e) => espnOrigin + e);
+
+    return urls;
+  } catch (err) {
+    console.error("Error scraping cricketer urls", err);
+    return [];
+  }
+}
+
+const scrapePlayersDataFromSquadUrl = async (squadUrl) => {
+  try {
+    const playerUrls = await scrapeCricketerUrlsFromSquadUrl(squadUrl);
+
+    const playerData = [];
+    for (const url of playerUrls) {
+      const data = await scrapePlayerDataFromEspn(url);
+      if (data) playerData.push({ ...data, espnUrl: url });
+    }
+
+    return playerData;
+  } catch (err) {
+    console.error("Error scraping players from squadUrl", err);
+    return [];
   }
 };
 
@@ -294,7 +331,7 @@ async function scrapeMatchDataFromUrl(url) {
 
         const dbPlayer = await PlayerSchema.findOne({
           playerId: batsman.player?.id,
-        }).select("_id");
+        }).select("_id name slug");
         if (!dbPlayer) continue;
 
         const {
@@ -390,9 +427,16 @@ async function scrapeMatchDataFromUrl(url) {
         )
           continue; // fielding not involved
 
-        const fielder = await PlayerSchema.findOne({
-          playerId: wicket.dismissalFielders[0].player?.id,
-        }).select("_id");
+        const fielders = [];
+        for (const f of wicket.dismissalFielders) {
+          const dbPlayer = await PlayerSchema.findOne({
+            playerId: f.player?.id,
+          }).select("_id");
+
+          if (dbPlayer) fielders.push(dbPlayer._id.toString());
+        }
+
+        const fielder = fielders[0];
         if (!fielder) continue;
         const batsman = await PlayerSchema.findOne({
           objectId: wicket.dismissalBatsman.objectId,
@@ -402,7 +446,8 @@ async function scrapeMatchDataFromUrl(url) {
         }).select("_id");
 
         const obj = {
-          fielder: fielder?._id?.toString(),
+          fielders,
+          fielder,
           batsman: batsman?._id?.toString(),
           bowler: bowler?._id?.toString(),
           dismissalType: wicket.dismissalText.short,
@@ -543,4 +588,5 @@ export {
   getTournamentDataFromUrl,
   scrapeMatchDataFromUrl,
   scrapePlayerDataFromEspn,
+  scrapePlayersDataFromSquadUrl,
 };

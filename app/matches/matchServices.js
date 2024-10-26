@@ -12,7 +12,7 @@ const getPopulatedMatchDetails = async (matchId) => {
     .populate("innings.inningBatsmen.player", "-stats")
     .populate("innings.inningBowlers.player", "-stats")
     .populate("innings.inningBowlers.detailedWickets.player", "-stats")
-    .populate("innings.fieldings.fielder", "-stats")
+    .populate("innings.fieldings.fielders", "-stats")
     .populate("innings.fieldings.batsman", "-stats")
     .populate("innings.fieldings.bowler", "-stats");
 

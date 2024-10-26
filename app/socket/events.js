@@ -662,6 +662,7 @@ const SocketEvents = (io) => {
         if (!room) return sendSocketError(socket, "You are not in any room");
 
         league.draftRound.paused = true;
+        league.draftRound.turnTimestamp = null;
         await league.save();
         clearRoomTimeout(leagueId);
         sendDraftRoundStatusAndUpdateRoom(leagueId, false, "paused");
