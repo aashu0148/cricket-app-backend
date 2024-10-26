@@ -11,6 +11,7 @@ import {
   deletePlayerFromTournament,
   checkForTournamentMatchResults,
   getTournamentsPlayers,
+  getAllTournamentsInShort,
 } from "./tournamentServices.js";
 import {
   authenticateAdminMiddleware,
@@ -38,6 +39,8 @@ router.post("/refresh/:id", authenticateAdminMiddleware, refreshTournament);
 
 // Get all tournaments
 router.get("/", authenticateUserMiddleware, getAllTournaments);
+
+router.get("/short", authenticateAdminMiddleware, getAllTournamentsInShort);
 
 router.get(
   "/:id/matches/results",

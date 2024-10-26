@@ -229,6 +229,20 @@ const getAllTournaments = async (req, res) => {
   }
 };
 
+// Get all tournaments
+const getAllTournamentsInShort = async (req, res) => {
+  try {
+    const tournaments = await TournamentSchema.find({})
+      .sort({ createdAt: -1 })
+      .select("longName name active season startDate endDate")
+      .lean();
+
+    createResponse(res, tournaments, 200);
+  } catch (err) {
+    createError(res, err.message || "Error fetching tournaments", 500, err);
+  }
+};
+
 // Get ongoing or upcoming tournaments
 const getOngoingUpcomingTournaments = async (req, res) => {
   try {
@@ -483,4 +497,5 @@ export {
   deletePlayerFromTournament,
   checkForTournamentMatchResults,
   getTournamentsPlayers,
+  getAllTournamentsInShort,
 };
