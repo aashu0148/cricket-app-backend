@@ -4,6 +4,7 @@ import {
   scrapePlayerDataFromEspn,
   scrapePlayersDataFromSquadUrl,
 } from "#scrapper/scrapper.js";
+import { playerRoleEnum } from "#utils/enums.js";
 
 // Bulk insert players into the database
 // const bulkInsertPlayers = async (req, res) => {
@@ -156,11 +157,21 @@ const scrapeAndStorePlayerDataFromEspn = async (req, res) => {
     if (existing)
       return createError(res, `Player already exist: ${existing.fullName}`);
 
+    const playingRole = (data.playingRole || "").toLowerCase();
+    const role = playingRole.includes("allrounder")
+      ? playerRoleEnum.ALLROUNDER
+      : playingRole.includes("batter")
+      ? playerRoleEnum.BATTER
+      : playingRole.includes("bowler")
+      ? playerRoleEnum.BOWLER
+      : "";
+
     const newPlayer = new PlayerSchema({
       playerId: data.id,
       fullName: data.full_name,
       espnUrl: url,
       ...data,
+      role,
     });
 
     newPlayer
@@ -191,10 +202,20 @@ const scrapeAndStorePlayerDataFromSquadUrl = async (req, res) => {
       });
       if (existing) continue;
 
+      const playingRole = (player.playingRole || "").toLowerCase();
+      const role = playingRole.includes("allrounder")
+        ? playerRoleEnum.ALLROUNDER
+        : playingRole.includes("batter")
+        ? playerRoleEnum.BATTER
+        : playingRole.includes("bowler")
+        ? playerRoleEnum.BOWLER
+        : "";
+
       const newPlayer = new PlayerSchema({
         playerId: player.id,
         fullName: player.full_name,
         ...player,
+        role,
       });
 
       await newPlayer.save();
