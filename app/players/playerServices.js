@@ -42,44 +42,32 @@ import { playerRoleEnum } from "#utils/enums.js";
 //   }
 // };
 
-// const updatePlayerStats = async (req, res) => {
-//   const players = await PlayerSchema.find({}).lean();
+const updatePlayerStats = async (playerId = "") => {
+  const player = await PlayerSchema.findOne({ _id: playerId }).lean();
+  if (!player || !player.espnUrl) return false;
 
-//   let result = [];
-//   for (let i = 0; i < players.length; ++i) {
-//     const player = players[i];
+  try {
+    const url = player.espnUrl;
+    const data = await scrapePlayerDataFromEspn(url);
+    const stats = data.stats;
 
-//     if (player.stats?.length) {
-//       console.log(
-//         `[${i + 1}/${players.length}] stats already exist: ${player.slug}`
-//       );
-//       continue; // stats exist
-//     }
+    if (stats?.length) {
+      await PlayerSchema.updateOne(
+        { _id: player._id },
+        {
+          $set: {
+            stats,
+          },
+        }
+      );
+    }
 
-//     try {
-//       const url = player.espnUrl;
-//       const data = await scrapePlayerDataFromEspn(url);
-//       const stats = data.stats;
-//       result = data;
-//       if (stats?.length) {
-//         await PlayerSchema.updateOne(
-//           { _id: player._id },
-//           {
-//             $set: {
-//               stats,
-//             },
-//           }
-//         );
-
-//         console.log(`[${i + 1}/${players.length}] updated for: ${player.slug}`);
-//       }
-//     } catch (error) {
-//       console.log("error occurred:", error?.message);
-//     }
-//   }
-
-//   createResponse(res, result);
-// };
+    return true;
+  } catch (error) {
+    console.log("Error updating player stats:", error?.message);
+    return false;
+  }
+};
 
 const getAllPlayers = async (req, res) => {
   try {
@@ -231,6 +219,7 @@ const scrapeAndStorePlayerDataFromSquadUrl = async (req, res) => {
 };
 
 export {
+  updatePlayerStats,
   getAllPlayers,
   getPlayerById,
   searchPlayerByName,

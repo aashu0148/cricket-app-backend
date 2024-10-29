@@ -15,6 +15,12 @@ function setUpCronJobs() {
         cron: "0 */12 * * *", // Run every 12 hours
         timezone: "Asia/Kolkata", // Indian timezone
       },
+      {
+        name: "Update player stats data",
+        path: "./jobs/updatePlayerStats.js",
+        cron: "0 0 * * *", // Run every day mid night
+        timezone: "Asia/Kolkata", // Indian timezone
+      },
     ],
   });
 

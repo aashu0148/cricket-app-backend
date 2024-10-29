@@ -27,34 +27,37 @@ const statsSchema = new mongoose.Schema({
   ],
 });
 
-const playerSchema = new mongoose.Schema({
-  // Basic Information
-  name: {
-    type: String,
-    required: true,
-  },
-  fullName: {
-    type: String,
-  },
-  playerId: {
-    type: Number,
-    required: true,
-    unique: true, // Ensures there's only one player with this ID
-  },
-  slug: {
-    type: String,
-    required: true,
-  },
-  playingRole: String,
-  role: String,
-  country: String,
-  objectId: Number,
-  espnUrl: String,
-  image: String,
+const playerSchema = new mongoose.Schema(
+  {
+    // Basic Information
+    name: {
+      type: String,
+      required: true,
+    },
+    fullName: {
+      type: String,
+    },
+    playerId: {
+      type: Number,
+      required: true,
+      unique: true, // Ensures there's only one player with this ID
+    },
+    slug: {
+      type: String,
+      required: true,
+    },
+    playingRole: String,
+    role: String,
+    country: String,
+    objectId: Number,
+    espnUrl: String,
+    image: String,
 
-  // Stats (Nested Schema)
-  stats: [statsSchema],
-});
+    // Stats (Nested Schema)
+    stats: [statsSchema],
+  },
+  { timestamps: true }
+);
 
 const PlayerSchema = mongoose.model("Player", playerSchema);
 
