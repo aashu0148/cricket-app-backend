@@ -363,7 +363,7 @@ const joinLeague = async (req, res) => {
 
     const timeDiff = new Date(league.draftRound.startDate) - new Date();
 
-    if (timeDiff < 5 * 60 * 1000)
+    if (timeDiff < 30 * 1000)
       return createError(
         res,
         "Can not join a league after draft round has started or about to start"
