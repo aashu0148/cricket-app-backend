@@ -16,6 +16,7 @@ const playerDismissalTypeEnum = {
   runOut: "run out",
   stumped: "stumped",
   lbw: "lbw",
+  assistedRunOut: "assisted run out", // this one is my custom
 };
 // its important to not change this enum, its based on espn's data
 const matchStatusEnum = {

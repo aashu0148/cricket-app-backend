@@ -291,6 +291,11 @@ const scoringSystemSchema = new mongoose.Schema(
         default: 15,
         min: [0, "Direct hit run-out points must be a positive number."],
       },
+      assistedRunOutPoints: {
+        type: Number,
+        default: 5,
+        min: [0, "Assisted hit run-out points must be a positive number."],
+      },
     },
   },
   { timestamps: true }

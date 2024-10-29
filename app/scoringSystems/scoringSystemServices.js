@@ -112,6 +112,7 @@ function getPlayersMatchStatsFromMatchData(matchData) {
           [playerDismissalTypeEnum.caught]: 0,
           [playerDismissalTypeEnum.stumped]: 0,
           [playerDismissalTypeEnum.runOut]: 0,
+          [playerDismissalTypeEnum.assistedRunOut]: 0,
         },
       };
     }
@@ -233,7 +234,11 @@ function getPlayersMatchStatsFromMatchData(matchData) {
         } else if (dismissalType === playerDismissalTypeEnum.stumped) {
           playerStats[fielderId].fielding[playerDismissalTypeEnum.stumped] += 1;
         } else if (dismissalType === playerDismissalTypeEnum.runOut) {
-          playerStats[fielderId].fielding[playerDismissalTypeEnum.runOut] += 1;
+          playerStats[fielderId].fielding[
+            fielders.length > 1
+              ? playerDismissalTypeEnum.assistedRunOut
+              : playerDismissalTypeEnum.runOut
+          ] += 1;
         }
       });
     });
@@ -434,14 +439,21 @@ function calculatePlayerFantasyPoints(scoringSystem, playerMatchData) {
     const runoutPoints =
       playerMatchData.fielding[playerDismissalTypeEnum.runOut] *
       scoringSystem.fielding.directHitRunOutPoints;
+    const assistedRunoutPoints =
+      playerMatchData.fielding[playerDismissalTypeEnum.assistedRunOut] *
+      (scoringSystem.fielding.assistedRunOutPoints || 0);
 
     totalPoints += catchPoints;
     totalPoints += stumpingPoints;
     totalPoints += runoutPoints;
+    totalPoints += assistedRunoutPoints;
 
     pointsBreakdown.push({ label: "Catch", points: catchPoints });
     pointsBreakdown.push({ label: "Stumping", points: stumpingPoints });
-    pointsBreakdown.push({ label: "Runout", points: runoutPoints });
+    pointsBreakdown.push({
+      label: "Runout",
+      points: runoutPoints + assistedRunoutPoints,
+    });
   }
 
   const finalBreakdown = pointsBreakdown.reduce((acc, curr) => {
